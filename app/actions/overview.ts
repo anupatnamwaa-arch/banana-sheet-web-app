@@ -72,9 +72,9 @@ export function resolveDateRange(
     const fromMs = Date.parse(from);
     const toMs = Date.parse(to);
     if (!isNaN(fromMs) && !isNaN(toMs) && fromMs <= toMs) {
-      const bkkOffset = 7 * 60;
-      const fromUTC = new Date(fromMs + bkkOffset * 60_000).toISOString();
-      const toUTC = new Date(toMs + (bkkOffset * 60_000) + 86_399_000).toISOString();
+      const bkkOffsetMs = 7 * 3_600_000; // UTC+7 = subtract 7h to get UTC
+      const fromUTC = new Date(fromMs - bkkOffsetMs).toISOString();
+      const toUTC = new Date(toMs - bkkOffsetMs + 86_399_000).toISOString();
       return { from: fromUTC, to: toUTC };
     }
   }
@@ -84,8 +84,10 @@ export function resolveDateRange(
     return { from: janFirst, to: null };
   }
 
-  // Default: "3m"
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setUTCDate(ninetyDaysAgo.getUTCDate() - 90);
-  return { from: ninetyDaysAgo.toISOString(), to: null };
+  // Default: "3m" — 90 days back, anchored to Bangkok midnight
+  const bkkOffsetMs = 7 * 3_600_000;
+  const todayBkk = bangkokToday();
+  const todayMidnightUTC = Date.UTC(todayBkk.year, todayBkk.month - 1, todayBkk.day) - bkkOffsetMs;
+  const ninetyDaysAgoUTC = todayMidnightUTC - 90 * 86_400_000;
+  return { from: new Date(ninetyDaysAgoUTC).toISOString(), to: null };
 }
