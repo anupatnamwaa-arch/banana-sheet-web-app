@@ -1,28 +1,68 @@
-// Overview tab — period selector, hero metrics (Total Expense, Net Cash Flow,
-// Net Saved, Saving Rate), Emergency Runway (Pro), Daily Pace (Pro).
-// Data wiring + gating: next task.
-export default function OverviewPage() {
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { isActive } from "@/lib/types";
+import type { Profile } from "@/lib/types";
+import { getOverviewData } from "@/app/actions/overview";
+import { resolveDateRange } from "@/app/actions/overview-utils";
+import type { Period } from "@/app/actions/overview-utils";
+import { PeriodSelector } from "./_components/PeriodSelector";
+import { HeroMetrics } from "./_components/HeroMetrics";
+import { EmergencyRunwayCard } from "./_components/EmergencyRunwayCard";
+import { DailyPaceCard } from "./_components/DailyPaceCard";
+
+// Next.js 16: searchParams is a Promise
+interface SearchParams {
+  period?: string;
+  from?: string;
+  to?: string;
+}
+
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { period, from, to } = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("is_active, plan_expires_at")
+    .eq("id", user.id)
+    .single();
+
+  const profile = profileData as Pick<Profile, "is_active" | "plan_expires_at"> | null;
+  const isPro = profile ? isActive(profile) : false;
+
+  const range = resolveDateRange(period, from, to);
+  const currentPeriod = (["year", "3m", "all", "custom"].includes(period ?? "")
+    ? period
+    : "3m") as Period;
+
+  const data = await getOverviewData(range, user.id, isPro);
+
   return (
     <section className="space-y-4">
       <header className="pt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-        <p className="text-sm text-fg-muted">This month</p>
+        <h1 className="text-2xl font-semibold tracking-tight">ภาพรวม</h1>
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="glass p-4">
-          <p className="text-xs text-fg-muted">Total Expense</p>
-          <p className="mt-1 text-xl font-semibold">฿0</p>
-        </div>
-        <div className="glass p-4">
-          <p className="text-xs text-fg-muted">Net Cash Flow</p>
-          <p className="mt-1 text-xl font-semibold">฿0</p>
-        </div>
-      </div>
+      <PeriodSelector
+        current={currentPeriod}
+        customFrom={currentPeriod === "custom" ? from : undefined}
+        customTo={currentPeriod === "custom" ? to : undefined}
+      />
 
-      <div className="glass p-4 text-sm text-fg-muted">
-        Emergency Runway & Daily Pace — Pro. TODO.
-      </div>
+      <HeroMetrics data={data} />
+
+      <EmergencyRunwayCard data={data.runway} />
+
+      <DailyPaceCard data={data.dailyPace} />
     </section>
   );
 }
