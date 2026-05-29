@@ -36,14 +36,12 @@ function savingRateColour(rate: number | null): "positive" | "negative" | "warni
   return "negative";
 }
 
-function cashFlowColour(value: number): "positive" | "negative" | "neutral" {
-  if (value > 0) return "positive";
-  if (value < 0) return "negative";
-  return "neutral";
+function cashFlowColour(value: number): "positive" | "negative" {
+  return value >= 0 ? "positive" : "negative";
 }
 
 export function HeroMetrics({ data }: Props) {
-  const { totalIncome, totalExpense, netCashFlow, savingRate } = data;
+  const { totalIncome, totalExpense, netCashFlow, netSaved, savingRate } = data;
 
   return (
     <div className="space-y-3">
@@ -61,8 +59,8 @@ export function HeroMetrics({ data }: Props) {
         />
         <MetricCard
           label="เงินออม"
-          value={formatTHB(netCashFlow)}
-          colour={cashFlowColour(netCashFlow)}
+          value={formatTHB(netSaved)}
+          colour={cashFlowColour(netSaved)}
         />
       </div>
       {/* Row 3 — full width */}
