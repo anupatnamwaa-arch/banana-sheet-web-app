@@ -66,10 +66,13 @@ export async function bulkImportTransactions(
 
   if (uniqueNames.length > 0) {
     // Insert missing categories (ON CONFLICT does nothing — idempotent).
-    await supabase.from("categories").insert(
-      uniqueNames.map((name) => ({ user_id: user.id, name })),
-      { count: "exact" }
+    const { error: catInsertError } = await supabase.from("categories").insert(
+      uniqueNames.map((name) => ({ user_id: user.id, name }))
     );
+    // A conflict (duplicate) is expected and safe — only throw on real errors.
+    if (catInsertError && catInsertError.code !== "23505") {
+      throw new Error(catInsertError.message);
+    }
 
     const { data: cats } = await supabase
       .from("categories")
@@ -96,8 +99,7 @@ export async function bulkImportTransactions(
   for (const row of rows) {
     if (!Number.isFinite(row.amount) || row.amount < 0) { skipped++; continue; }
     if (row.type !== "income" && row.type !== "expense") { skipped++; continue; }
-    const dateMs = Date.parse(row.date);
-    if (isNaN(dateMs)) { skipped++; continue; }
+    if (!row.date || isNaN(Date.parse(row.date))) { skipped++; continue; }
 
     inserts.push({
       user_id: user.id,
@@ -107,7 +109,7 @@ export async function bulkImportTransactions(
         ? (categoryMap[row.category.toLowerCase()] ?? null)
         : null,
       note: row.note ?? null,
-      date: new Date(dateMs).toISOString(),
+      date: row.date,
     });
   }
 
