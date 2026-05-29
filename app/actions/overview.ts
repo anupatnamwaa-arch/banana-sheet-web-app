@@ -121,13 +121,15 @@ export async function getOverviewData(
   if (range.from) periodQuery = periodQuery.gte("date", range.from);
   if (range.to) periodQuery = periodQuery.lte("date", range.to);
 
-  // ── Query 2: trailing 12-month expenses (avgMonthlyExpense) ──────────────
-  const trailingQuery = supabase
-    .from("transactions")
-    .select("amount, date")
-    .eq("user_id", userId)
-    .eq("type", "expense")
-    .gte("date", trailingStart);
+  // ── Query 2: trailing 12-month expenses (avgMonthlyExpense, Pro only) ────
+  const trailingQuery = isPro
+    ? supabase
+        .from("transactions")
+        .select("amount, date")
+        .eq("user_id", userId)
+        .eq("type", "expense")
+        .gte("date", trailingStart)
+    : null;
 
   // ── Pro-only queries ──────────────────────────────────────────────────────
   const wealthQuery = isPro
@@ -157,11 +159,17 @@ export async function getOverviewData(
   const [periodResult, trailingResult, wealthResult, budgetResult, currentMonthResult] =
     await Promise.all([
       periodQuery,
-      trailingQuery,
+      trailingQuery ?? Promise.resolve({ data: null, error: null }),
       wealthQuery ?? Promise.resolve({ data: null, error: null }),
       budgetQuery ?? Promise.resolve({ data: null, error: null }),
       currentMonthQuery ?? Promise.resolve({ data: null, error: null }),
     ]);
+
+  if (periodResult.error) throw new Error(`Period query failed: ${periodResult.error.message}`);
+  if (trailingResult.error) throw new Error(`Trailing query failed: ${trailingResult.error.message}`);
+  if (isPro && wealthResult.error) throw new Error(`Wealth query failed: ${wealthResult.error.message}`);
+  if (isPro && budgetResult.error) throw new Error(`Budget query failed: ${budgetResult.error.message}`);
+  if (isPro && currentMonthResult.error) throw new Error(`Current month query failed: ${currentMonthResult.error.message}`);
 
   // ── Hero metrics ──────────────────────────────────────────────────────────
   const periodRows = (periodResult.data ?? []) as Array<{ amount: number; type: string }>;
@@ -174,7 +182,16 @@ export async function getOverviewData(
   const netCashFlow = totalIncome - totalExpense;
   const savingRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : null;
 
-  // ── avgMonthlyExpense ─────────────────────────────────────────────────────
+  // ── Return free user data early ───────────────────────────────────────────
+  if (!isPro) {
+    return {
+      totalIncome, totalExpense,
+      netCashFlow, netSaved: netCashFlow, savingRate,
+      runway: null, dailyPace: null,
+    };
+  }
+
+  // ── avgMonthlyExpense (Pro only) ──────────────────────────────────────────
   const trailingRows = (trailingResult.data ?? []) as Array<{ amount: number; date: string }>;
   const monthBuckets: Record<string, number> = {};
   for (const r of trailingRows) {
@@ -189,15 +206,6 @@ export async function getOverviewData(
   const totalTrailingExpense = Object.values(monthBuckets).reduce((a, b) => a + b, 0);
   const avgMonthlyExpense = monthCount > 0 ? totalTrailingExpense / monthCount : 0;
 
-  // ── Return free user data early ───────────────────────────────────────────
-  if (!isPro) {
-    return {
-      totalIncome, totalExpense,
-      netCashFlow, netSaved: netCashFlow, savingRate,
-      runway: null, dailyPace: null,
-    };
-  }
-
   // ── Runway ────────────────────────────────────────────────────────────────
   const wealthRows = (wealthResult.data ?? []) as Array<{ value: number }>;
   const liquidAssets = wealthRows.reduce((sum, r) => sum + r.value, 0);
@@ -207,7 +215,7 @@ export async function getOverviewData(
   // ── Daily Pace ────────────────────────────────────────────────────────────
   const budgetRows = (budgetResult.data ?? []) as Array<{ limit_amount: number }>;
   const budgetTotal = budgetRows.reduce((sum, r) => sum + r.limit_amount, 0);
-  const hasBudget = budgetTotal > 0;
+  const hasBudget = budgetRows.length > 0;
   const budgetTarget = hasBudget ? budgetTotal : avgMonthlyExpense;
   const paceLine = daysInMonth > 0 ? budgetTarget * (day / daysInMonth) : 0;
 
