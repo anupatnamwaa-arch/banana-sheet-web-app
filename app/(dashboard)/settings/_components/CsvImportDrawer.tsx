@@ -79,6 +79,12 @@ export function CsvImportDrawer() {
     : [];
   const previewHasValid = previewRows.some((r) => r.row !== null);
   const canConfirm = previewHasValid && !!mapping.date && !!mapping.amount;
+  // Count valid rows across the full file for the confirm button label.
+  const validRowCount = parsed
+    ? parsed.rows.filter(
+        (r) => mapRow(r, mapping, dateFormat, typeMode, typeColMapping).row !== null
+      ).length
+    : 0;
 
   async function handleConfirm() {
     if (!parsed) return;
@@ -118,7 +124,7 @@ export function CsvImportDrawer() {
             <motion.div
               className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
+              onClick={() => { if (!submitting) setOpen(false); }}
             />
 
             {/* Drawer */}
@@ -133,7 +139,7 @@ export function CsvImportDrawer() {
               </div>
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">นำเข้าไฟล์ CSV</h2>
-                <button onClick={() => setOpen(false)} className="text-fg-muted">
+                <button onClick={() => { if (!submitting) setOpen(false); }} className="text-fg-muted" disabled={submitting}>
                   <X size={20} />
                 </button>
               </div>
@@ -294,7 +300,7 @@ export function CsvImportDrawer() {
                       </div>
 
                       {/* STAGE 3: Live Preview */}
-                      {mapping.date && mapping.amount && (
+                      {mapping.date && (
                         <div>
                           <p className="mb-2 text-sm font-medium">ตัวอย่าง 5 รายการแรก</p>
                           <div className="overflow-x-auto rounded-xl border border-[var(--glass-border)]">
@@ -351,7 +357,7 @@ export function CsvImportDrawer() {
                       >
                         {submitting
                           ? "กำลังนำเข้า…"
-                          : `นำเข้า ${parsed.rows.length} รายการ`}
+                          : `นำเข้า ${validRowCount} รายการ`}
                       </button>
                     </div>
                   )}
