@@ -116,14 +116,14 @@ export async function getAnalyticsData(
     spendMap[catId].spent += r.amount;
   }
 
-  const categorySpend: CategorySpend[] = Object.entries(spendMap).map(
-    ([catId, { name, spent }]) => ({
+  const categorySpend: CategorySpend[] = Object.entries(spendMap)
+    .map(([catId, { name, spent }]) => ({
       categoryId: catId,
       categoryName: name,
       spent,
       budget: budgetMap[catId] ?? null,
-    })
-  );
+    }))
+    .sort((a, b) => b.spent - a.spent);
 
   return { monthlyPoints, categorySpend };
 }
