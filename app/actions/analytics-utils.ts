@@ -6,6 +6,8 @@ import { bangkokToday } from "@/app/actions/overview-utils";
 
 export type AnalyticsPeriod = "month" | "prevmonth" | "3m" | "6m" | "year";
 
+export const DEFAULT_SAVINGS_TARGET_PCT = 20;
+
 export const ANALYTICS_PERIODS: { id: AnalyticsPeriod; label: string }[] = [
   { id: "month", label: "เดือนนี้" },
   { id: "prevmonth", label: "เดือนก่อน" },

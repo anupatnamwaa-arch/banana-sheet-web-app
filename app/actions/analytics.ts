@@ -7,12 +7,11 @@ import { bangkokToday } from "@/app/actions/overview-utils";
 import {
   resolvePeriodWindow,
   trailingMonthKeys,
+  DEFAULT_SAVINGS_TARGET_PCT,
   type AnalyticsPeriod,
 } from "@/app/actions/analytics-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export const DEFAULT_SAVINGS_TARGET_PCT = 20;
 
 export interface MetricSummary {
   totalExpense: number;
