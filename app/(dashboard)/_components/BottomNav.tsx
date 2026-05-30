@@ -20,19 +20,17 @@ export function BottomNav() {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [categoriesFetched, setCategoriesFetched] = useState(false);
 
   async function handleFabClick() {
-    // Lazy-fetch categories on first open
-    if (categories.length === 0) {
+    if (!categoriesFetched) {
       try {
         const res = await fetch("/api/categories");
-        if (res.ok) {
-          const data = await res.json();
-          setCategories(data);
-        }
+        if (res.ok) setCategories(await res.json());
       } catch {
         // proceed with empty categories — still usable
       }
+      setCategoriesFetched(true);
     }
     setDrawerOpen(true);
   }
@@ -60,7 +58,7 @@ export function BottomNav() {
             })}
 
             {/* FAB spacer */}
-            <div className="w-14 flex-shrink-0" aria-hidden />
+            <div className="w-[52px] flex-shrink-0" aria-hidden />
 
             {RIGHT_TABS.map(({ href, label, Icon }) => {
               const active = pathname.startsWith(href);

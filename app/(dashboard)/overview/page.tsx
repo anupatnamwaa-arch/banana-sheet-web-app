@@ -41,8 +41,8 @@ export default async function OverviewPage({
   const isPro = profile ? isActive(profile) : false;
 
   const displayName =
-    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
-    user.email?.split("@")[0] ??
+    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0]?.trim() ||
+    user.email?.split("@")[0] ||
     "คุณ";
 
   const range = resolveDateRange(period, from, to);
