@@ -5,6 +5,7 @@ import type { Profile } from "@/lib/types";
 import { getOverviewData } from "@/app/actions/overview";
 import { resolveDateRange } from "@/app/actions/overview-utils";
 import type { Period } from "@/app/actions/overview-utils";
+import { HomeHeader } from "./_components/HomeHeader";
 import { PeriodSelector } from "./_components/PeriodSelector";
 import { HeroMetrics } from "./_components/HeroMetrics";
 import { EmergencyRunwayCard } from "./_components/EmergencyRunwayCard";
@@ -39,6 +40,11 @@ export default async function OverviewPage({
   const profile = profileData as Pick<Profile, "is_active" | "plan_expires_at"> | null;
   const isPro = profile ? isActive(profile) : false;
 
+  const displayName =
+    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
+    user.email?.split("@")[0] ??
+    "คุณ";
+
   const range = resolveDateRange(period, from, to);
   const currentPeriod = (["year", "3m", "all", "custom"].includes(period ?? "")
     ? period
@@ -48,9 +54,11 @@ export default async function OverviewPage({
 
   return (
     <section className="space-y-4">
-      <header className="pt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">ภาพรวม</h1>
-      </header>
+      <HomeHeader
+        displayName={displayName}
+        totalIncome={data.totalIncome}
+        totalExpense={data.totalExpense}
+      />
 
       <PeriodSelector
         current={currentPeriod}
