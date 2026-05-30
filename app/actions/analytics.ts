@@ -6,7 +6,7 @@ import { bangkokDateKey, bangkokMonthKey } from "@/lib/format";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import {
   resolvePeriodWindow,
-  resolveMonthWindow,
+  resolveRangeWindow,
   trailingMonthKeys,
   monthKeysEndingAt,
   DEFAULT_SAVINGS_TARGET_PCT,
@@ -87,18 +87,18 @@ export async function getAnalyticsData(
   userId: string,
   period: AnalyticsPeriod,
   savingsTarget: number = DEFAULT_SAVINGS_TARGET_PCT,
-  monthOverride?: string
+  range?: { from: string; to: string }
 ): Promise<AnalyticsData> {
   const supabase = await createClient();
 
-  // A specific month (YYYY-MM) overrides the preset period when valid.
-  const monthWin = monthOverride ? resolveMonthWindow(monthOverride) : null;
-  const win = monthWin ?? resolvePeriodWindow(period);
+  // A custom month range overrides the preset period when valid.
+  const rangeWin = range ? resolveRangeWindow(range.from, range.to) : null;
+  const win = rangeWin ?? resolvePeriodWindow(period);
 
-  // Trend (and current-month remaining) anchor to the selected month when one is
-  // picked; otherwise to the trailing window ending this month.
-  const trendKeys = monthWin && monthOverride
-    ? monthKeysEndingAt(monthOverride, 6)
+  // Trend (and anchor-month remaining) end at the range's last month when a range
+  // is picked; otherwise at the trailing window ending this month.
+  const trendKeys = rangeWin && range
+    ? monthKeysEndingAt(range.to, 6)
     : trailingMonthKeys(6);
   const anchorMk = trendKeys[trendKeys.length - 1];
 

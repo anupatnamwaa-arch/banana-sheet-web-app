@@ -6,7 +6,7 @@ import { ANALYTICS_PERIODS, type AnalyticsPeriod } from "@/app/actions/analytics
 
 interface Props {
   current: AnalyticsPeriod;
-  selectedMonth: string | null; // "YYYY-MM" or null
+  selectedRange: { from: string; to: string } | null;
 }
 
 const THAI_MONTHS = [
@@ -14,12 +14,21 @@ const THAI_MONTHS = [
   "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ];
 
-function monthLabel(ym: string): string {
+function ymLabel(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
-  return `${THAI_MONTHS[m - 1]} ${y + 543}`; // Buddhist era
+  return `${THAI_MONTHS[m - 1]} ${y + 543}`;
 }
 
-export function PeriodPills({ current, selectedMonth }: Props) {
+/** Compact label for a range pill. */
+function rangeLabel(from: string, to: string): string {
+  if (from === to) return ymLabel(from);
+  const [fy, fm] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  if (fy === ty) return `${THAI_MONTHS[fm - 1]}–${THAI_MONTHS[tm - 1]} ${ty + 543}`;
+  return `${ymLabel(from)} – ${ymLabel(to)}`;
+}
+
+export function PeriodPills({ current, selectedRange }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -27,35 +36,47 @@ export function PeriodPills({ current, selectedMonth }: Props) {
 
   const now = new Date();
   const curYear = now.getFullYear();
-  const curMonth = now.getMonth() + 1; // 1-based
+  const curMonth = now.getMonth() + 1;
+  const years = Array.from({ length: 6 }, (_, i) => curYear - 5 + i); // oldest → newest
 
-  // Year currently shown in the picker (Gregorian).
-  const [viewYear, setViewYear] = useState(() =>
-    selectedMonth ? Number(selectedMonth.slice(0, 4)) : curYear
-  );
+  const initFrom = selectedRange?.from ?? `${curYear}-${String(curMonth).padStart(2, "0")}`;
+  const initTo = selectedRange?.to ?? `${curYear}-${String(curMonth).padStart(2, "0")}`;
+  const [fromY, setFromY] = useState(Number(initFrom.slice(0, 4)));
+  const [fromM, setFromM] = useState(Number(initFrom.slice(5, 7)));
+  const [toY, setToY] = useState(Number(initTo.slice(0, 4)));
+  const [toM, setToM] = useState(Number(initTo.slice(5, 7)));
+
+  const fromYm = `${fromY}-${String(fromM).padStart(2, "0")}`;
+  const toYm = `${toY}-${String(toM).padStart(2, "0")}`;
+  const invalid = fromYm > toYm;
 
   function pushPeriod(id: AnalyticsPeriod) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("period", id);
-    params.delete("month");
+    params.delete("from");
+    params.delete("to");
     setPickerOpen(false);
     startTransition(() => router.push(`/analytics?${params.toString()}`, { scroll: false }));
   }
 
-  function pushMonth(month1: number) {
-    const ym = `${viewYear}-${String(month1).padStart(2, "0")}`;
+  function applyRange() {
+    if (invalid) return;
     const params = new URLSearchParams(searchParams.toString());
-    params.set("month", ym);
+    params.set("from", fromYm);
+    params.set("to", toYm);
     params.delete("period");
     setPickerOpen(false);
     startTransition(() => router.push(`/analytics?${params.toString()}`, { scroll: false }));
   }
 
+  const selectClass =
+    "rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-fg outline-none";
+
   return (
     <div className={isPending ? "opacity-60" : ""}>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {ANALYTICS_PERIODS.map((p) => {
-          const active = !selectedMonth && p.id === current;
+          const active = !selectedRange && p.id === current;
           return (
             <button
               key={p.id}
@@ -70,66 +91,62 @@ export function PeriodPills({ current, selectedMonth }: Props) {
           );
         })}
 
-        {/* Free month picker */}
         <button
           type="button"
           onClick={() => setPickerOpen((o) => !o)}
           className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-            selectedMonth ? "bg-accent text-black" : "bg-[var(--glass-bg)] text-fg-muted hover:text-fg"
+            selectedRange ? "bg-accent text-black" : "bg-[var(--glass-bg)] text-fg-muted hover:text-fg"
           }`}
         >
-          {selectedMonth ? monthLabel(selectedMonth) : "เลือกเดือน"}
+          {selectedRange ? rangeLabel(selectedRange.from, selectedRange.to) : "เลือกช่วงเอง"}
           <span className="text-[10px]">▾</span>
         </button>
       </div>
 
       {pickerOpen && (
-        <div className="mt-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] p-3">
-          {/* Year stepper (Buddhist era) */}
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setViewYear((y) => y - 1)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--glass-bg)] text-fg-muted hover:text-fg"
-              aria-label="ปีก่อนหน้า"
-            >
-              ‹
-            </button>
-            <span className="text-sm font-semibold tabular-nums">{viewYear + 543}</span>
-            <button
-              type="button"
-              onClick={() => setViewYear((y) => Math.min(curYear, y + 1))}
-              disabled={viewYear >= curYear}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--glass-bg)] text-fg-muted hover:text-fg disabled:opacity-30"
-              aria-label="ปีถัดไป"
-            >
-              ›
-            </button>
+        <div className="mt-2 space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] p-3">
+          {/* Start */}
+          <div className="flex items-center gap-2">
+            <span className="w-10 shrink-0 text-xs text-fg-muted">เริ่ม</span>
+            <select className={selectClass} value={fromM} onChange={(e) => setFromM(Number(e.target.value))}>
+              {THAI_MONTHS.map((label, i) => (
+                <option key={i} value={i + 1}>{label}</option>
+              ))}
+            </select>
+            <select className={selectClass} value={fromY} onChange={(e) => setFromY(Number(e.target.value))}>
+              {years.map((y) => (
+                <option key={y} value={y}>{y + 543}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Month grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {THAI_MONTHS.map((label, i) => {
-              const month1 = i + 1;
-              const isFuture = viewYear > curYear || (viewYear === curYear && month1 > curMonth);
-              const isSelected = selectedMonth === `${viewYear}-${String(month1).padStart(2, "0")}`;
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => pushMonth(month1)}
-                  disabled={isFuture}
-                  className={`rounded-xl py-2 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? "bg-accent text-black"
-                      : "bg-[var(--glass-bg)] text-fg hover:bg-[var(--glass-border)]"
-                  } disabled:opacity-25`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          {/* End */}
+          <div className="flex items-center gap-2">
+            <span className="w-10 shrink-0 text-xs text-fg-muted">ถึง</span>
+            <select className={selectClass} value={toM} onChange={(e) => setToM(Number(e.target.value))}>
+              {THAI_MONTHS.map((label, i) => (
+                <option key={i} value={i + 1}>{label}</option>
+              ))}
+            </select>
+            <select className={selectClass} value={toY} onChange={(e) => setToY(Number(e.target.value))}>
+              {years.map((y) => (
+                <option key={y} value={y}>{y + 543}</option>
+              ))}
+            </select>
           </div>
+
+          {invalid && (
+            <p className="text-xs text-[var(--negative)]">เดือนเริ่มต้องไม่เกินเดือนสิ้นสุด</p>
+          )}
+
+          <button
+            type="button"
+            onClick={applyRange}
+            disabled={invalid}
+            className="w-full rounded-xl bg-accent py-2 text-xs font-semibold text-black transition-opacity disabled:opacity-40"
+          >
+            ดูข้อมูลช่วงนี้
+          </button>
         </div>
       )}
     </div>

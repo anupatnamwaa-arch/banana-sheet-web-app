@@ -17,7 +17,8 @@ import { AnalyticsEmptyState } from "./_components/AnalyticsEmptyState";
 
 interface SearchParams {
   period?: string;
-  month?: string;
+  from?: string;
+  to?: string;
 }
 
 export default async function AnalyticsPage({
@@ -25,8 +26,12 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { period: rawPeriod, month: rawMonth } = await searchParams;
-  const monthOverride = /^\d{4}-\d{2}$/.test(rawMonth ?? "") ? rawMonth : undefined;
+  const { period: rawPeriod, from: rawFrom, to: rawTo } = await searchParams;
+  const ym = /^\d{4}-\d{2}$/;
+  const range =
+    ym.test(rawFrom ?? "") && ym.test(rawTo ?? "") && rawFrom! <= rawTo!
+      ? { from: rawFrom!, to: rawTo! }
+      : undefined;
   const period = normalizePeriod(rawPeriod);
 
   const supabase = await createClient();
@@ -43,7 +48,7 @@ export default async function AnalyticsPage({
   const savingsTarget =
     (profileData as { savings_target_pct: number } | null)?.savings_target_pct ?? 20;
 
-  const analytics = await getAnalyticsData(userId, period, savingsTarget, monthOverride);
+  const analytics = await getAnalyticsData(userId, period, savingsTarget, range);
 
   return (
     <section className="space-y-4 pb-4">
@@ -58,7 +63,7 @@ export default async function AnalyticsPage({
       </header>
 
       <Suspense fallback={<div className="h-8" />}>
-        <PeriodPills current={period} selectedMonth={monthOverride ?? null} />
+        <PeriodPills current={period} selectedRange={range ?? null} />
       </Suspense>
 
       {!analytics.hasData ? (

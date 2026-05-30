@@ -4,15 +4,13 @@
 
 import { bangkokToday } from "@/app/actions/overview-utils";
 
-export type AnalyticsPeriod = "month" | "prevmonth" | "3m" | "6m" | "year";
+export type AnalyticsPeriod = "month" | "prevmonth" | "year";
 
 export const DEFAULT_SAVINGS_TARGET_PCT = 20;
 
 export const ANALYTICS_PERIODS: { id: AnalyticsPeriod; label: string }[] = [
   { id: "month", label: "เดือนนี้" },
   { id: "prevmonth", label: "เดือนก่อน" },
-  { id: "3m", label: "3 เดือน" },
-  { id: "6m", label: "6 เดือน" },
   { id: "year", label: "ปีนี้" },
 ];
 
@@ -52,14 +50,6 @@ export function resolvePeriodWindow(period: AnalyticsPeriod): PeriodWindow {
       startM = -1;
       endM = 0;
       break;
-    case "3m":
-      startM = -2;
-      endM = 1;
-      break;
-    case "6m":
-      startM = -5;
-      endM = 1;
-      break;
     case "year": {
       // Whole calendar year
       const start = bkkIso(year, 1, 1);
@@ -83,18 +73,30 @@ function daysBetween(startIso: string, endIso: string): number {
   return Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000);
 }
 
-/** Parse "YYYY-MM" and resolve to a single-month window (comparison = previous month). */
-export function resolveMonthWindow(ym: string): PeriodWindow | null {
-  const m = /^(\d{4})-(\d{2})$/.exec(ym);
-  if (!m) return null;
-  const year = Number(m[1]);
-  const month = Number(m[2]);
-  if (month < 1 || month > 12) return null;
+/**
+ * Resolve a custom month range ("YYYY-MM" → "YYYY-MM", inclusive) to a window.
+ * Comparison window = an equal number of months immediately preceding the range.
+ * Returns null if either bound is malformed or `from` is after `to`.
+ */
+export function resolveRangeWindow(fromYm: string, toYm: string): PeriodWindow | null {
+  const f = /^(\d{4})-(\d{2})$/.exec(fromYm);
+  const t = /^(\d{4})-(\d{2})$/.exec(toYm);
+  if (!f || !t) return null;
+  const fy = Number(f[1]);
+  const fm = Number(f[2]);
+  const ty = Number(t[1]);
+  const tm = Number(t[2]);
+  if (fm < 1 || fm > 12 || tm < 1 || tm > 12) return null;
 
-  const start = bkkIso(year, month, 1);
-  const end = bkkIso(year, month + 1, 1);
-  const prevStart = bkkIso(year, month - 1, 1);
+  const startMonths = fy * 12 + (fm - 1);
+  const endMonths = ty * 12 + (tm - 1);
+  if (startMonths > endMonths) return null;
+  const spanMonths = endMonths - startMonths + 1;
+
+  const start = bkkIso(fy, fm, 1);
+  const end = bkkIso(ty, tm + 1, 1);
   const prevEnd = start;
+  const prevStart = bkkIso(fy, fm - spanMonths, 1);
   return { start, end, prevStart, prevEnd, lengthDays: daysBetween(start, end) };
 }
 
