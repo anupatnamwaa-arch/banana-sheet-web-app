@@ -1,31 +1,32 @@
 // app/(dashboard)/settings/page.tsx
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { isActive } from "@/lib/types";
 import type { Profile } from "@/lib/types";
 import { CsvExportButton } from "./_components/CsvExportButton";
 import { CsvImportDrawer } from "./_components/CsvImportDrawer";
 import { BudgetList } from "./_components/BudgetList";
 import { ApiKeySection } from "./_components/ApiKeySection";
 import { ShortcutGuide } from "./_components/ShortcutGuide";
+import { SavingsTargetSection } from "./_components/SavingsTargetSection";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // if (!user) redirect("/login");
+  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("is_active, plan_expires_at, api_key")
-    .eq("id", user.id)
+    .select("is_active, plan_expires_at, api_key, savings_target_pct")
+    .eq("id", userId)
     .single();
 
   const profile = profileData as Pick<
     Profile,
-    "is_active" | "plan_expires_at" | "api_key"
+    "is_active" | "plan_expires_at" | "api_key" | "savings_target_pct"
   > | null;
-  const isPro = profile ? isActive(profile) : false;
+  const isPro = true; // DEMO: unlock Pro
   const apiKey = profile?.api_key ?? null;
+  const savingsTarget = profile?.savings_target_pct ?? 20;
 
   return (
     <section className="space-y-6">
@@ -41,7 +42,10 @@ export default async function SettingsPage() {
       </div>
 
       {/* Budgets */}
-      <BudgetList userId={user.id} isPro={isPro} />
+      <BudgetList userId={userId} isPro={isPro} />
+
+      {/* Savings target */}
+      <SavingsTargetSection initialTarget={savingsTarget} />
 
       {/* API Key + Shortcut guide */}
       <ApiKeySection initialKey={apiKey} />

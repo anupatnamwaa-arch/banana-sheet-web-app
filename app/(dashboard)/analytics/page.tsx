@@ -1,40 +1,97 @@
 // app/(dashboard)/analytics/page.tsx
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { isActive } from "@/lib/types";
-import type { Profile } from "@/lib/types";
 import { getAnalyticsData } from "@/app/actions/analytics";
-import { MonthlyVelocityChart } from "./_components/MonthlyVelocityChart";
-import { CategoryBreakdownChart } from "./_components/CategoryBreakdownChart";
-import { TransactionList } from "./_components/TransactionList";
+import { normalizePeriod } from "@/app/actions/analytics-utils";
+import { RoastEntryCard } from "./_components/RoastEntryCard";
+import { PeriodPills } from "./_components/PeriodPills";
+import { KeyMetrics } from "./_components/KeyMetrics";
+import { CategoryBars } from "./_components/CategoryBars";
+import { IncomeExpenseTrend } from "./_components/IncomeExpenseTrend";
+import { SavingsRate } from "./_components/SavingsRate";
+import { DailyPattern } from "./_components/DailyPattern";
+import { TopSpendingInsight } from "./_components/TopSpendingInsight";
+import { ComparisonInsight } from "./_components/ComparisonInsight";
+import { SmartInsights } from "./_components/SmartInsights";
+import { AnalyticsEmptyState } from "./_components/AnalyticsEmptyState";
 
-export default async function AnalyticsPage() {
+interface SearchParams {
+  period?: string;
+}
+
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { period: rawPeriod } = await searchParams;
+  const period = normalizePeriod(rawPeriod);
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("is_active, plan_expires_at")
-    .eq("id", user.id)
+    .select("savings_target_pct")
+    .eq("id", userId)
     .single();
+  const savingsTarget =
+    (profileData as { savings_target_pct: number } | null)?.savings_target_pct ?? 20;
 
-  const profile = profileData as Pick<Profile, "is_active" | "plan_expires_at"> | null;
-  const isPro = profile ? isActive(profile) : false;
-
-  const analytics = await getAnalyticsData(user.id, isPro);
+  const analytics = await getAnalyticsData(userId, period, savingsTarget);
 
   return (
-    <section className="space-y-4">
-      <header className="pt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">วิเคราะห์</h1>
+    <section className="space-y-4 pb-4">
+      {/* AI roast entry stays pinned at the very top */}
+      <RoastEntryCard />
+
+      <header className="pt-1">
+        <h1 className="text-2xl font-bold tracking-tight">วิเคราะห์การเงิน</h1>
+        <p className="mt-0.5 text-sm text-fg-muted">
+          ดูพฤติกรรมรายรับ รายจ่าย และการออมของคุณ
+        </p>
       </header>
 
-      <MonthlyVelocityChart data={analytics.monthlyPoints} />
+      <Suspense fallback={<div className="h-8" />}>
+        <PeriodPills current={period} />
+      </Suspense>
 
-      <CategoryBreakdownChart data={analytics.categorySpend} />
+      {!analytics.hasData ? (
+        <AnalyticsEmptyState />
+      ) : (
+        <>
+          <KeyMetrics metrics={analytics.metrics} />
 
-      <TransactionList userId={user.id} />
+          <CategoryBars categories={analytics.categories} />
+
+          <IncomeExpenseTrend
+            trend={analytics.trend}
+            currentMonthRemaining={analytics.currentMonthRemaining}
+          />
+
+          <SavingsRate
+            savingRate={analytics.metrics.savingRate}
+            totalSavings={analytics.metrics.totalSavings}
+            totalIncome={analytics.metrics.totalIncome}
+            target={savingsTarget}
+          />
+
+          <DailyPattern
+            daily={analytics.daily}
+            peakDay={analytics.peakDay}
+            avgPerDay={analytics.metrics.avgPerDay}
+          />
+
+          <TopSpendingInsight topCategory={analytics.topCategory} />
+
+          <ComparisonInsight movers={analytics.movers} />
+
+          <SmartInsights insights={analytics.insights} />
+        </>
+      )}
     </section>
   );
 }

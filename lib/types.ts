@@ -15,6 +15,7 @@ export interface Profile {
   promo_code: string | null;
   free_roast_used: boolean;
   last_roast_at: string | null;
+  savings_target_pct: number;
   created_at: string;
 }
 
