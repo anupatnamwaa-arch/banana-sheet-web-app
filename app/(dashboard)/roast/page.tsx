@@ -42,9 +42,11 @@ export default function RoastPage() {
     setQuotes([]);
     setSelectedQuote(null);
     setError(null);
+    setRateLimitReason(null);
+    setNextAvailableAt(null);
 
     try {
-      const res = await fetch(`/api/roast?persona=${personaId}`);
+      const res = await fetch(`/api/roast?persona=${encodeURIComponent(personaId)}`);
 
       if (res.status === 429) {
         const body = await res.json();
@@ -62,15 +64,20 @@ export default function RoastPage() {
       const decoder = new TextDecoder();
       let accumulated = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        // Try to extract roast text for progressive display
-        const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
-        if (roastMatch) {
-          setRoastText(roastMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'));
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          // Try to extract roast text for progressive display
+          const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+          if (roastMatch) {
+            setRoastText(roastMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'));
+          }
         }
+      } catch (streamErr) {
+        reader.cancel();
+        throw streamErr;
       }
 
       // Parse complete JSON
