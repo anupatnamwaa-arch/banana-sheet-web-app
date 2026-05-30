@@ -2,70 +2,59 @@
 
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, Tooltip } from "recharts";
 import { formatTHB } from "@/lib/format";
-import type { DailyPoint } from "@/app/actions/analytics";
+import type { WeekdayPoint } from "@/app/actions/analytics";
 
 interface Props {
-  daily: DailyPoint[];
-  peakDay: DailyPoint | null;
+  weeklyPattern: WeekdayPoint[];
+  peakWeekday: WeekdayPoint | null;
   avgPerDay: number;
-}
-
-const THAI_MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
-
-function thaiDay(date: string): string {
-  const [, m, d] = date.split("-");
-  return `${parseInt(d, 10)} ${THAI_MONTHS[parseInt(m, 10) - 1]}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ChartTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
+  const p = payload[0].payload as WeekdayPoint;
   return (
     <div className="glass rounded-xl px-3 py-2 text-xs shadow-lg">
-      <p className="font-medium">{thaiDay(p.date)}</p>
-      <p className="text-negative">{formatTHB(p.amount)}</p>
+      <p className="font-medium">{p.fullLabel}</p>
+      <p className="text-negative">เฉลี่ย {formatTHB(Math.round(p.avg))}</p>
     </div>
   );
 }
 
-export function DailyPattern({ daily, peakDay, avgPerDay }: Props) {
-  if (daily.length === 0) return null;
+export function DailyPattern({ weeklyPattern, peakWeekday, avgPerDay }: Props) {
+  const hasSpend = weeklyPattern.some((w) => w.avg > 0);
+  if (!hasSpend) return null;
 
-  const peakDate = peakDay?.date;
-  const data = daily.map((d) => ({ ...d, label: parseInt(d.date.slice(8, 10), 10) }));
+  const peakLabel = peakWeekday?.label;
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
-      <p className="mb-3 text-sm font-semibold">พฤติกรรมการใช้เงินรายวัน</p>
+      <p className="mb-1 text-sm font-semibold">พฤติกรรมการใช้เงินรายวัน</p>
+      <p className="mb-3 text-xs text-fg-muted">ค่าเฉลี่ยต่อวัน แยกตามวันในสัปดาห์</p>
 
       <ResponsiveContainer width="100%" height={140}>
-        <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <BarChart data={weeklyPattern} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis
             dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "var(--color-fg-muted, #aaa)", fontSize: 9 }}
-            interval="preserveStartEnd"
-            minTickGap={16}
+            tick={{ fill: "var(--color-fg-muted, #aaa)", fontSize: 11 }}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-          <Bar dataKey="amount" radius={[2, 2, 0, 0]}>
-            {data.map((d) => (
-              <Cell key={d.date} fill={d.date === peakDate ? "#facc15" : "#f87171"} />
+          <Bar dataKey="avg" radius={[4, 4, 0, 0]} maxBarSize={28}>
+            {weeklyPattern.map((w) => (
+              <Cell key={w.label} fill={w.label === peakLabel ? "#facc15" : "#f87171"} />
             ))}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
 
-      {peakDay && (
+      {peakWeekday && (
         <p className="mt-3 text-xs text-fg-muted">
-          วันที่ใช้จ่ายสูงสุด:{" "}
-          <span className="font-semibold text-fg">{thaiDay(peakDay.date)}</span>{" "}
-          {formatTHB(peakDay.amount)}
+          วันที่ใช้จ่ายเฉลี่ยสูงสุด:{" "}
+          <span className="font-semibold text-fg">วัน{peakWeekday.fullLabel}</span>{" "}
+          {formatTHB(Math.round(peakWeekday.avg))}
         </p>
       )}
       <p className="mt-0.5 text-xs text-fg-muted">

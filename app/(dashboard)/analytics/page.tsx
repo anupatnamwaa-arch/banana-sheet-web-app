@@ -82,8 +82,8 @@ export default async function AnalyticsPage({
           />
 
           <DailyPattern
-            daily={analytics.daily}
-            peakDay={analytics.peakDay}
+            weeklyPattern={analytics.weeklyPattern}
+            peakWeekday={analytics.peakWeekday}
             avgPerDay={analytics.metrics.avgPerDay}
           />
 

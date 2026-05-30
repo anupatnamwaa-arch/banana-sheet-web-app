@@ -40,9 +40,10 @@ export interface TrendPoint {
   savings: number;
 }
 
-export interface DailyPoint {
-  date: string; // YYYY-MM-DD (Bangkok)
-  amount: number;
+export interface WeekdayPoint {
+  label: string; // จ, อ, พ, ...
+  fullLabel: string; // จันทร์, อังคาร, ...
+  avg: number; // average expense on this weekday across the window
 }
 
 export interface CategoryMove {
@@ -60,8 +61,8 @@ export interface AnalyticsData {
   categories: CategoryRow[]; // sorted desc, all (component slices top 5)
   trend: TrendPoint[]; // trailing 6 months
   currentMonthRemaining: number;
-  daily: DailyPoint[]; // per-day expenses in selected window
-  peakDay: DailyPoint | null;
+  weeklyPattern: WeekdayPoint[]; // avg expense per weekday (Mon→Sun)
+  peakWeekday: WeekdayPoint | null;
   topCategory: CategoryRow | null;
   movers: CategoryMove[]; // biggest category changes vs previous window
   insights: string[]; // max 2
@@ -184,13 +185,6 @@ export async function getAnalyticsData(
 
   const topCategory = categories[0] ?? null;
 
-  // ── Daily series + peak ──────────────────────────────────────────────────
-  const daily: DailyPoint[] = Object.entries(dailyMap)
-    .map(([date, amount]) => ({ date, amount }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const peakDay =
-    daily.length > 0 ? daily.reduce((m, d) => (d.amount > m.amount ? d : m), daily[0]) : null;
-
   // ── Avg per day (over elapsed days of the window) ────────────────────────
   const { year, month, day } = bangkokToday();
   const nowMidnightIso = new Date(
@@ -202,6 +196,35 @@ export async function getAnalyticsData(
     Math.round((Date.parse(elapsedEnd) - Date.parse(win.start)) / 86_400_000)
   );
   const avgPerDay = totalExpense / elapsedDays;
+
+  // ── Weekday pattern (avg expense per day-of-week, Mon→Sun) ────────────────
+  const WD_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+  const WD_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
+  // Monday-first index (0..6) from a YYYY-MM-DD calendar date.
+  const mondayIdx = (dateKey: string) => {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  };
+
+  const wdSum = [0, 0, 0, 0, 0, 0, 0];
+  for (const [date, amount] of Object.entries(dailyMap)) wdSum[mondayIdx(date)] += amount;
+
+  // Count how many of each weekday have elapsed in the window.
+  const wdCount = [0, 0, 0, 0, 0, 0, 0];
+  const [sy, sm, sd] = bangkokDateKey(win.start).split("-").map(Number);
+  for (let i = 0; i < elapsedDays; i++) {
+    const dow = (new Date(Date.UTC(sy, sm - 1, sd + i)).getUTCDay() + 6) % 7;
+    wdCount[dow]++;
+  }
+
+  const weeklyPattern: WeekdayPoint[] = WD_SHORT.map((label, i) => ({
+    label,
+    fullLabel: WD_FULL[i],
+    avg: wdCount[i] > 0 ? wdSum[i] / wdCount[i] : 0,
+  }));
+  const peakWeekday = weeklyPattern.some((w) => w.avg > 0)
+    ? weeklyPattern.reduce((m, w) => (w.avg > m.avg ? w : m), weeklyPattern[0])
+    : null;
 
   // ── Saving rate ──────────────────────────────────────────────────────────
   const savingRate = totalIncome > 0 ? Math.round((totalSavings / totalIncome) * 100) : null;
@@ -265,8 +288,8 @@ export async function getAnalyticsData(
     categories,
     trend,
     currentMonthRemaining,
-    daily,
-    peakDay,
+    weeklyPattern,
+    peakWeekday,
     topCategory,
     movers,
     insights: insights.slice(0, 2),
