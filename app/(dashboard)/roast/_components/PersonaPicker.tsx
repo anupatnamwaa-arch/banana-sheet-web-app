@@ -15,6 +15,7 @@ export function PersonaPicker({ selected, onChange }: Props) {
         <button
           key={p.id}
           onClick={() => onChange(p.id)}
+          aria-pressed={selected === p.id}
           className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
             selected === p.id
               ? "bg-accent text-white"

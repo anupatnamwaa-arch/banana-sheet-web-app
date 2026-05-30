@@ -9,7 +9,7 @@ interface Props {
 }
 
 function daysUntil(iso: string): number {
-  return Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 }
 
 export function RoastButton({ onClick, loading, rateLimitReason, nextAvailableAt }: Props) {
@@ -22,11 +22,14 @@ export function RoastButton({ onClick, loading, rateLimitReason, nextAvailableAt
     );
   }
 
-  if (rateLimitReason === "pro_cooldown" && nextAvailableAt) {
-    const days = daysUntil(nextAvailableAt);
+  if (rateLimitReason === "pro_cooldown") {
     return (
       <div className="glass rounded-2xl p-4 text-center">
-        <p className="text-sm font-medium">Roast อีกครั้งได้ใน {days} วัน</p>
+        <p className="text-sm font-medium">
+          {nextAvailableAt
+            ? `Roast อีกครั้งได้ใน ${daysUntil(nextAvailableAt)} วัน`
+            : "ยังไม่สามารถ Roast ได้"}
+        </p>
         <p className="mt-1 text-xs text-fg-muted">Pro: 1 ครั้งต่อสัปดาห์</p>
       </div>
     );

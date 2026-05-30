@@ -13,7 +13,7 @@ export function QuotePicker({ quotes, selected, onSelect }: Props) {
       <p className="text-xs font-medium text-fg-muted">เลือก quote เพื่อแชร์</p>
       {quotes.map((q, i) => (
         <button
-          key={i}
+          key={q.slice(0, 32)}
           onClick={() => onSelect(i)}
           className={`w-full rounded-xl p-3 text-left text-sm transition-colors ${
             selected === i
