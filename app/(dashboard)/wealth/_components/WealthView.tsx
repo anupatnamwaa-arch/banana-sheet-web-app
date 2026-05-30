@@ -61,7 +61,9 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 export function WealthView({ data }: { data: WealthData }) {
   const router = useRouter();
-  const [wealthDrawer, setWealthDrawer] = useState<{ mode: "add" | "edit"; item?: WealthRow } | null>(null);
+  const [wealthDrawer, setWealthDrawer] = useState<
+    { mode: "add" | "edit"; item?: WealthRow; initialType?: "asset" | "liability" } | null
+  >(null);
   const [goalDrawer, setGoalDrawer] = useState<{ mode: "add" | "edit"; goal?: Goal } | null>(null);
   const [showAllAssets, setShowAllAssets] = useState(false);
 
@@ -133,13 +135,20 @@ export function WealthView({ data }: { data: WealthData }) {
           <p className="mt-1 text-sm text-fg-muted">
             เพิ่มสินทรัพย์ หนี้สิน หรือเป้าหมายการเงิน เพื่อดูมูลค่าสุทธิของคุณ
           </p>
-          <p className="mt-4 text-xs text-fg-muted">แตะปุ่ม + ด้านล่างเพื่อเริ่มต้น</p>
-          <button
-            onClick={() => setGoalDrawer({ mode: "add" })}
-            className="mt-4 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black"
-          >
-            เพิ่มเป้าหมายแรก
-          </button>
+          <div className="mt-5 flex justify-center gap-2">
+            <button
+              onClick={() => setWealthDrawer({ mode: "add", initialType: "asset" })}
+              className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black"
+            >
+              เพิ่มสินทรัพย์
+            </button>
+            <button
+              onClick={() => setGoalDrawer({ mode: "add" })}
+              className="rounded-full border border-[var(--glass-border)] px-4 py-1.5 text-xs font-semibold text-fg"
+            >
+              เพิ่มเป้าหมาย
+            </button>
+          </div>
         </Card>
       ) : (
         <>
@@ -176,16 +185,26 @@ export function WealthView({ data }: { data: WealthData }) {
           </div>
 
           {/* Asset breakdown */}
-          {assets.length > 0 && (
-            <Card>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold">สินทรัพย์ของฉัน</p>
+          <Card>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold">สินทรัพย์ของฉัน</p>
+              <div className="flex items-center gap-3">
                 {assets.length > 5 && (
-                  <button onClick={() => setShowAllAssets((v) => !v)} className="text-xs text-accent">
+                  <button onClick={() => setShowAllAssets((v) => !v)} className="text-xs text-fg-muted">
                     {showAllAssets ? "ย่อ" : "ดูทั้งหมด"}
                   </button>
                 )}
+                <button
+                  onClick={() => setWealthDrawer({ mode: "add", initialType: "asset" })}
+                  className="text-xs text-accent"
+                >
+                  เพิ่ม
+                </button>
               </div>
+            </div>
+            {assets.length === 0 ? (
+              <p className="py-3 text-center text-xs text-fg-muted">ยังไม่มีสินทรัพย์ — แตะ “เพิ่ม” เพื่อเริ่ม</p>
+            ) : (
               <div className="space-y-3">
                 {topAssets.map((a) => {
                   const pct = totalAssets > 0 ? Math.round((a.value / totalAssets) * 100) : 0;
@@ -207,12 +226,20 @@ export function WealthView({ data }: { data: WealthData }) {
                   );
                 })}
               </div>
-            </Card>
-          )}
+            )}
+          </Card>
 
           {/* Debt breakdown */}
           <Card>
-            <p className="mb-3 text-sm font-semibold">หนี้สินของฉัน</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold">หนี้สินของฉัน</p>
+              <button
+                onClick={() => setWealthDrawer({ mode: "add", initialType: "liability" })}
+                className="text-xs text-accent"
+              >
+                เพิ่ม
+              </button>
+            </div>
             {liabilities.length === 0 ? (
               <div className="py-4 text-center">
                 <p className="text-sm font-medium text-positive">ไม่มีหนี้สินตอนนี้ 🎉</p>
@@ -346,6 +373,7 @@ export function WealthView({ data }: { data: WealthData }) {
         <WealthFormDrawer
           mode={wealthDrawer.mode}
           item={wealthDrawer.item}
+          initialType={wealthDrawer.initialType}
           onClose={() => setWealthDrawer(null)}
           onSuccess={refresh}
         />

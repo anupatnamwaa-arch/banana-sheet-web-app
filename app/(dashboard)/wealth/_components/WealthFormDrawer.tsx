@@ -21,13 +21,14 @@ export interface WealthRow {
 interface Props {
   mode: "add" | "edit";
   item?: WealthRow;
+  initialType?: WealthType; // preselect asset/liability in add mode
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function WealthFormDrawer({ mode, item, onClose, onSuccess }: Props) {
+export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }: Props) {
   const [name, setName] = useState(item?.name ?? "");
-  const [type, setType] = useState<WealthType>(item?.type ?? "asset");
+  const [type, setType] = useState<WealthType>(item?.type ?? initialType ?? "asset");
   const [value, setValue] = useState(item ? String(item.value) : "");
   const [isLiquid, setIsLiquid] = useState(item?.is_liquid ?? true);
   const [monthlyPayment, setMonthlyPayment] = useState(
