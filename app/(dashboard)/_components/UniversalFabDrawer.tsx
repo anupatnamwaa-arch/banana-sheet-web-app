@@ -141,7 +141,10 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setTxType(t)}
+                  onClick={() => {
+                    setTxType(t);
+                    if (t === "savings") setCategoryId("");
+                  }}
                   className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
                     txType === t
                       ? "bg-accent text-black"
@@ -167,16 +170,18 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
             />
 
             {/* Category */}
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">— หมวดหมู่ (ไม่บังคับ) —</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            {txType !== "savings" && (
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">— หมวดหมู่ (ไม่บังคับ) —</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
 
             {/* Note */}
             <input

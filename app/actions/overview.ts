@@ -119,7 +119,8 @@ export async function getOverviewData(
   let totalExpense = 0;
   for (const r of periodRows) {
     if (r.type === "income") totalIncome += r.amount;
-    else totalExpense += r.amount;
+    else if (r.type === "expense") totalExpense += r.amount;
+    // savings does not affect income or expense totals
   }
   const netCashFlow = totalIncome - totalExpense;
   const savingRate = totalIncome > 0 ? (netCashFlow / totalIncome) * 100 : null;

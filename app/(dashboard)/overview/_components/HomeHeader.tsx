@@ -34,7 +34,7 @@ export function HomeHeader({ displayName, totalIncome, totalExpense }: Props) {
         ? "text-negative"
         : "text-fg";
 
-  const cashflowSign = netCashflow >= 0 ? "+" : "-";
+  const cashflowSign = netCashflow > 0 ? "+" : netCashflow < 0 ? "-" : "";
 
   return (
     <div className="space-y-4 pt-2">
