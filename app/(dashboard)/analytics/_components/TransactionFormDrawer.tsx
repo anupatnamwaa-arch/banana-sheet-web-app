@@ -92,11 +92,13 @@ export function TransactionFormDrawer({
   return (
     <AnimatePresence>
       <motion.div
+        key="backdrop"
         className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={() => { if (!loading && !deleting) onClose(); }}
       />
       <motion.div
+        key="drawer"
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-[var(--bg-elevated)] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
