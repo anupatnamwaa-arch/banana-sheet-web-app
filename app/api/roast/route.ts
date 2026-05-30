@@ -1,7 +1,7 @@
 // app/api/roast/route.ts
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
-import { getRoastData } from "@/app/actions/roast";
+import { getRoastData, markRoastUsed } from "@/app/actions/roast";
 import { getPersona } from "@/app/(dashboard)/roast/_lib/personas";
 
 export const runtime = "nodejs";
@@ -44,50 +44,61 @@ ${budgetLines}
 }
 
 export async function GET(req: NextRequest) {
-  const personaId = req.nextUrl.searchParams.get("persona") ?? "auntie";
-  const persona = getPersona(personaId);
+  try {
+    const personaId = req.nextUrl.searchParams.get("persona") ?? "auntie";
+    const persona = getPersona(personaId);
 
-  // Fetch and check rate limit
-  const result = await getRoastData();
-  if (!result.allowed) {
-    return new Response(JSON.stringify({ error: result.reason }), {
-      status: 429,
+    // Fetch and check rate limit
+    const result = await getRoastData();
+    if (!result.allowed) {
+      return new Response(JSON.stringify({ error: result.reason }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Mark roast as used server-side before streaming starts
+    await markRoastUsed();
+
+    const userPrompt = buildUserPrompt(result.data);
+
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.9,
+      stream: true,
+      messages: [
+        { role: "system", content: persona.systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    });
+
+    const encoder = new TextEncoder();
+
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content ?? "";
+            if (text) controller.enqueue(encoder.encode(text));
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Cache-Control": "no-cache",
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  const userPrompt = buildUserPrompt(result.data);
-
-  const stream = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0.9,
-    stream: true,
-    messages: [
-      { role: "system", content: persona.systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  });
-
-  const encoder = new TextEncoder();
-
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content ?? "";
-          if (text) controller.enqueue(encoder.encode(text));
-        }
-      } finally {
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
-      "Cache-Control": "no-cache",
-    },
-  });
 }

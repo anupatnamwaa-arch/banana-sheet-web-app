@@ -46,7 +46,7 @@ async function aggregateByCategory(
   start: string,
   end: string,
 ): Promise<CategorySpend[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("transactions")
     .select("amount, category_id, categories(name)")
     .eq("user_id", userId)
@@ -54,6 +54,7 @@ async function aggregateByCategory(
     .gte("date", start)
     .lt("date", end);
 
+  if (error) throw new Error(error.message);
   if (!data) return [];
 
   const map = new Map<string, { total: number; count: number }>();
@@ -76,7 +77,7 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
   // Fetch profile for rate limit + plan check
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_active, plan_expires_at, plan_type, free_roast_used, last_roast_at")
+    .select("is_active, plan_expires_at, free_roast_used, last_roast_at")
     .eq("id", user.id)
     .single();
 
@@ -116,10 +117,12 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
   ]);
 
   // Budgets
-  const { data: budgetRows } = await supabase
+  const { data: budgetRows, error: budgetError } = await supabase
     .from("budgets")
     .select("limit_amount, categories(name)")
     .eq("user_id", user.id);
+
+  if (budgetError) throw new Error(budgetError.message);
 
   const budgets: BudgetEntry[] = (budgetRows ?? []).map(
     (b: { limit_amount: number; categories: { name: string } | null }) => ({
@@ -140,10 +143,22 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
   };
 }
 
-export async function markRoastUsed(isPro: boolean): Promise<void> {
+export async function markRoastUsed(): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_active, plan_expires_at")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return;
+
+  const isPro =
+    profile.is_active &&
+    (profile.plan_expires_at === null || new Date(profile.plan_expires_at).getTime() > Date.now());
 
   if (isPro) {
     await supabase
