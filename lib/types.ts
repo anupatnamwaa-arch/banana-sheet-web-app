@@ -1,7 +1,7 @@
 // Hand-written domain types mirroring the Phase 1 schema.
 // See CONTEXT.md for the meaning of each term.
 
-export type TransactionType = "income" | "expense";
+export type TransactionType = "income" | "expense" | "savings";
 export type WealthType = "asset" | "liability";
 export type PlanType = "lifetime" | "monthly" | "yearly";
 export type SlipStatus = "pending" | "verified" | "rejected";
