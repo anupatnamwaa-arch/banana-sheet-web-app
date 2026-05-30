@@ -13,7 +13,7 @@ const LEFT_TABS = [
 
 const RIGHT_TABS = [
   { href: "/transactions", label: "รายการ", Icon: CreditCard },
-  { href: "/wealth", label: "ทรัพย์สิน", Icon: Wallet },
+  { href: "/wealth", label: "ความมั่งคั่ง", Icon: Wallet },
 ];
 
 export function BottomNav() {

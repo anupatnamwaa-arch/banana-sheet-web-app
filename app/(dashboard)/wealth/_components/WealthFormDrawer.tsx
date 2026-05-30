@@ -14,6 +14,8 @@ export interface WealthRow {
   type: WealthType;
   value: number;
   is_liquid: boolean;
+  monthly_payment?: number | null;
+  due_date?: string | null;
 }
 
 interface Props {
@@ -28,6 +30,10 @@ export function WealthFormDrawer({ mode, item, onClose, onSuccess }: Props) {
   const [type, setType] = useState<WealthType>(item?.type ?? "asset");
   const [value, setValue] = useState(item ? String(item.value) : "");
   const [isLiquid, setIsLiquid] = useState(item?.is_liquid ?? true);
+  const [monthlyPayment, setMonthlyPayment] = useState(
+    item?.monthly_payment != null ? String(item.monthly_payment) : ""
+  );
+  const [dueDate, setDueDate] = useState(item?.due_date ?? "");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +45,14 @@ export function WealthFormDrawer({ mode, item, onClose, onSuccess }: Props) {
     if (!num || num <= 0) { setError("กรุณากรอกมูลค่าที่ถูกต้อง"); return; }
 
     setLoading(true); setError(null);
+    const mp = parseFloat(monthlyPayment);
     const payload: WealthPayload = {
       name: name.trim(),
       type,
       value: num,
       is_liquid: type === "asset" ? isLiquid : false,
+      monthly_payment: type === "liability" && mp > 0 ? mp : null,
+      due_date: type === "liability" && dueDate ? dueDate : null,
     };
     try {
       if (mode === "add") await addWealth(payload);
@@ -155,7 +164,32 @@ export function WealthFormDrawer({ mode, item, onClose, onSuccess }: Props) {
             </button>
           )}
           {type === "asset" && (
-            <p className="-mt-2 text-xs text-fg-muted">นับรวมใน Emergency Runway</p>
+            <p className="-mt-2 text-xs text-fg-muted">นับรวมในเงินสำรองฉุกเฉิน</p>
+          )}
+
+          {/* Debt details — liabilities only */}
+          {type === "liability" && (
+            <>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                placeholder="ยอดผ่อน/ชำระต่อเดือน (฿) — ไม่บังคับ"
+                value={monthlyPayment}
+                onChange={(e) => setMonthlyPayment(e.target.value)}
+                className={inputClass}
+              />
+              <div>
+                <label className="mb-1 block text-xs text-fg-muted">วันครบกำหนด (ไม่บังคับ)</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </>
           )}
 
           {error && (

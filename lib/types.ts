@@ -61,7 +61,19 @@ export interface WealthDebt {
   type: WealthType;
   value: number;
   is_liquid: boolean;
+  monthly_payment: number | null; // liabilities only
+  due_date: string | null;        // liabilities only, YYYY-MM-DD
   updated_at: string;
+}
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string | null; // YYYY-MM-DD
+  created_at: string;
 }
 
 /** A user is Active (Pro) when the gate is set AND the plan hasn't expired. */
