@@ -120,16 +120,16 @@ export function TransactionFormDrawer({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type toggle */}
           <div className="flex gap-2">
-            {(["expense", "income"] as TransactionType[]).map((t) => (
+            {(["expense", "income", "savings"] as TransactionType[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
                   type === t ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
               >
-                {t === "expense" ? "รายจ่าย" : "รายรับ"}
+                {t === "expense" ? "รายจ่าย" : t === "income" ? "รายรับ" : "ออมเงิน"}
               </button>
             ))}
           </div>
