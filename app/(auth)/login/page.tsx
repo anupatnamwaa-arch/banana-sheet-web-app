@@ -1,5 +1,5 @@
-// Auth screen — Google OAuth (primary) + email/password fallback.
-// Wiring of the actual Supabase auth calls comes in the auth task; this is the shell.
+import { LoginForm } from "./_components/LoginForm";
+
 export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
@@ -9,16 +9,7 @@ export default function LoginPage() {
         <p className="mt-2 text-sm text-fg-muted">
           Log expenses in a tap. See them beautifully.
         </p>
-
-        <div className="mt-8 space-y-3">
-          <button className="w-full rounded-2xl bg-white py-3 font-medium text-black">
-            Continue with Google
-          </button>
-          <button className="w-full rounded-2xl border border-[var(--glass-border)] py-3 font-medium">
-            Continue with email
-          </button>
-        </div>
-        <p className="mt-6 text-xs text-fg-muted">Auth wiring: TODO</p>
+        <LoginForm />
       </div>
     </main>
   );
