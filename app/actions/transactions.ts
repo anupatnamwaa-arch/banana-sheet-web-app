@@ -74,6 +74,33 @@ export async function updateTransaction(
   if (error) throw new Error(error.message);
 }
 
+/** Insert a copy of an existing transaction (same fields). Returns nothing. */
+export async function duplicateTransaction(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { data: original, error: fetchError } = await supabase
+    .from("transactions")
+    .select("amount, type, category_id, date, note, brand_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+  if (!original) throw new Error("ไม่พบรายการ");
+
+  const { error } = await supabase.from("transactions").insert({
+    user_id: user.id,
+    amount: original.amount,
+    type: original.type,
+    category_id: original.category_id,
+    date: original.date,
+    note: original.note,
+    brand_id: original.brand_id,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

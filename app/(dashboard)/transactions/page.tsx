@@ -1,18 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { TransactionList } from "@/app/(dashboard)/analytics/_components/TransactionList";
+import { TransactionsView } from "./_components/TransactionsView";
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
 
-  return (
-    <section className="space-y-4">
-      <header className="pt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">รายการ</h1>
-      </header>
-      <TransactionList userId={user.id} />
-    </section>
-  );
+  return <TransactionsView userId={userId} />;
 }
