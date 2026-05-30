@@ -1,7 +1,7 @@
 // app/(dashboard)/analytics/_components/TransactionList.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -24,9 +24,7 @@ export function TransactionList({ userId }: Props) {
   const [loading, setLoading] = useState(true);
   const [drawerMode, setDrawerMode] = useState<"add" | "edit" | null>(null);
   const [selected, setSelected] = useState<TransactionRow | undefined>();
-  const [dragOffsets, setDragOffsets] = useState<Record<string, number>>({});
-
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchTransactions = useCallback(async () => {
     const { data } = await supabase
@@ -58,8 +56,12 @@ export function TransactionList({ userId }: Props) {
 
   async function handleSwipeDelete(id: string) {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
-    try { await deleteTransaction(id); }
-    catch { fetchTransactions(); } // revert optimistic removal on error
+    try {
+      await deleteTransaction(id);
+      fetchTransactions(); // reconcile server state after successful delete
+    } catch {
+      fetchTransactions(); // revert optimistic removal on error
+    }
   }
 
   if (loading) {
@@ -92,8 +94,8 @@ export function TransactionList({ userId }: Props) {
         <AnimatePresence>
           {transactions.map((tx) => {
             const isExpense = tx.type === "expense";
-            const catName = (tx as any).categories?.name ?? "ไม่มีหมวดหมู่";
-            const brandLogo = (tx as any).brands?.logo_url;
+            const catName = tx.categories?.name ?? "ไม่มีหมวดหมู่";
+            const brandLogo = tx.brands?.logo_url;
 
             return (
               <motion.div

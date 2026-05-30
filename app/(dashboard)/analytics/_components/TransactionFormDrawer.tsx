@@ -17,6 +17,7 @@ export interface TransactionRow {
   date: string;
   note: string | null;
   categories: { name: string } | null;
+  brands: { name: string; logo_url: string | null } | null;
 }
 
 interface Props {
