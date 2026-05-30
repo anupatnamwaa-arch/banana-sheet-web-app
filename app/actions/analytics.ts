@@ -6,7 +6,9 @@ import { bangkokDateKey, bangkokMonthKey } from "@/lib/format";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import {
   resolvePeriodWindow,
+  resolveMonthWindow,
   trailingMonthKeys,
+  monthKeysEndingAt,
   DEFAULT_SAVINGS_TARGET_PCT,
   type AnalyticsPeriod,
 } from "@/app/actions/analytics-utils";
@@ -83,11 +85,21 @@ function catName(row: TxRow): string {
 export async function getAnalyticsData(
   userId: string,
   period: AnalyticsPeriod,
-  savingsTarget: number = DEFAULT_SAVINGS_TARGET_PCT
+  savingsTarget: number = DEFAULT_SAVINGS_TARGET_PCT,
+  monthOverride?: string
 ): Promise<AnalyticsData> {
   const supabase = await createClient();
-  const win = resolvePeriodWindow(period);
-  const trendKeys = trailingMonthKeys(6);
+
+  // A specific month (YYYY-MM) overrides the preset period when valid.
+  const monthWin = monthOverride ? resolveMonthWindow(monthOverride) : null;
+  const win = monthWin ?? resolvePeriodWindow(period);
+
+  // Trend (and current-month remaining) anchor to the selected month when one is
+  // picked; otherwise to the trailing window ending this month.
+  const trendKeys = monthWin && monthOverride
+    ? monthKeysEndingAt(monthOverride, 6)
+    : trailingMonthKeys(6);
+  const anchorMk = trendKeys[trendKeys.length - 1];
 
   // Earliest instant we need = min(prevStart, Bangkok start of the trailing-6-month
   // trend window). Anchor the trend start to Bangkok midnight (UTC+7).
@@ -194,10 +206,9 @@ export async function getAnalyticsData(
   // ── Saving rate ──────────────────────────────────────────────────────────
   const savingRate = totalIncome > 0 ? Math.round((totalSavings / totalIncome) * 100) : null;
 
-  // ── Trend array + current-month remaining ────────────────────────────────
+  // ── Trend array + anchor-month remaining ─────────────────────────────────
   const trend: TrendPoint[] = trendKeys.map((m) => ({ month: m, ...trendBuckets[m] }));
-  const curMk = `${year}-${String(month).padStart(2, "0")}`;
-  const cur = trendBuckets[curMk] ?? { income: 0, expense: 0, savings: 0 };
+  const cur = trendBuckets[anchorMk] ?? { income: 0, expense: 0, savings: 0 };
   const currentMonthRemaining = cur.income - cur.expense - cur.savings;
 
   // ── Movers (category change vs previous window) ──────────────────────────

@@ -83,6 +83,32 @@ function daysBetween(startIso: string, endIso: string): number {
   return Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000);
 }
 
+/** Parse "YYYY-MM" and resolve to a single-month window (comparison = previous month). */
+export function resolveMonthWindow(ym: string): PeriodWindow | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(ym);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return null;
+
+  const start = bkkIso(year, month, 1);
+  const end = bkkIso(year, month + 1, 1);
+  const prevStart = bkkIso(year, month - 1, 1);
+  const prevEnd = start;
+  return { start, end, prevStart, prevEnd, lengthDays: daysBetween(start, end) };
+}
+
+/** N month keys (YYYY-MM) ending at the given "YYYY-MM", oldest first. */
+export function monthKeysEndingAt(ym: string, n: number): string[] {
+  const [y, m] = ym.split("-").map(Number);
+  const keys: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    keys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  return keys;
+}
+
 /** Trailing N month keys (YYYY-MM, Bangkok) ending at the current month, oldest first. */
 export function trailingMonthKeys(n: number): string[] {
   const { year, month } = bangkokToday();
