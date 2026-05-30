@@ -58,8 +58,8 @@ async function aggregateByCategory(
   if (!data) return [];
 
   const map = new Map<string, { total: number; count: number }>();
-  for (const row of data as Array<{ amount: number; categories: { name: string } | null }>) {
-    const cat = row.categories?.name ?? "อื่นๆ";
+  for (const row of data as Array<{ amount: number; categories: { name: string }[] | null }>) {
+    const cat = row.categories?.[0]?.name ?? "อื่นๆ";
     const existing = map.get(cat) ?? { total: 0, count: 0 };
     map.set(cat, { total: existing.total + row.amount, count: existing.count + 1 });
   }
@@ -125,8 +125,8 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
   if (budgetError) throw new Error(budgetError.message);
 
   const budgets: BudgetEntry[] = (budgetRows ?? []).map(
-    (b: { limit_amount: number; categories: { name: string } | null }) => ({
-      category: b.categories?.name ?? "อื่นๆ",
+    (b: { limit_amount: number; categories: { name: string }[] | null }) => ({
+      category: b.categories?.[0]?.name ?? "อื่นๆ",
       limit_amount: b.limit_amount,
     }),
   );

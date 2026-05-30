@@ -70,7 +70,7 @@ export default function RoastPage() {
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
           // Try to extract roast text for progressive display
-          const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+          const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\[\s\S])*)"/)
           if (roastMatch) {
             setRoastText(roastMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'));
           }
