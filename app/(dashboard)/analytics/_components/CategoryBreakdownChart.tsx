@@ -74,7 +74,7 @@ export function CategoryBreakdownChart({ data }: Props) {
                     style={{ background: PALETTE[i % PALETTE.length] }}
                   />
                   <span className="flex-1 truncate text-fg-muted">{cat.categoryName}</span>
-                  <span className={overBudget ? "text-[var(--negative)]" : "tabular-nums"}>
+                  <span className={`tabular-nums ${overBudget ? "text-[var(--negative)]" : ""}`}>
                     {formatTHB(cat.spent)}
                   </span>
                   <span className="text-fg-muted">
