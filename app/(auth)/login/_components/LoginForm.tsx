@@ -70,6 +70,11 @@ export function LoginForm() {
       >
         สมัครใหม่
       </button>
+      <div className="text-center">
+        <a href="/forgot-password" className="text-xs text-fg-muted hover:text-fg transition-colors">
+          ลืมรหัสผ่าน?
+        </a>
+      </div>
     </form>
   );
 }
