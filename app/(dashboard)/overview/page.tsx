@@ -1,76 +1,52 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { isActive } from "@/lib/types";
-import type { Profile } from "@/lib/types";
-import { getOverviewData } from "@/app/actions/overview";
-import { resolveDateRange } from "@/app/actions/overview-utils";
-import type { Period } from "@/app/actions/overview-utils";
+import { getHomeData } from "@/app/actions/home";
 import { HomeHeader } from "./_components/HomeHeader";
-import { PeriodSelector } from "./_components/PeriodSelector";
-import { HeroMetrics } from "./_components/HeroMetrics";
-import { EmergencyRunwayCard } from "./_components/EmergencyRunwayCard";
-import { DailyPaceCard } from "./_components/DailyPaceCard";
+import { HomeBalanceCard } from "./_components/HomeBalanceCard";
+import { HomeSummaryCards } from "./_components/HomeSummaryCards";
+import { HomeBudgetProgress } from "./_components/HomeBudgetProgress";
+import { HomeTodayCard } from "./_components/HomeTodayCard";
+import { HomeRecentTransactions } from "./_components/HomeRecentTransactions";
+import { HomeInsightCard } from "./_components/HomeInsightCard";
 
-// Next.js 16: searchParams is a Promise
-interface SearchParams {
-  period?: string;
-  from?: string;
-  to?: string;
-}
-
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const { period, from, to } = await searchParams;
-
+export default async function OverviewPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("is_active, plan_expires_at")
-    .eq("id", user.id)
-    .single();
-
-  const profile = profileData as Pick<Profile, "is_active" | "plan_expires_at"> | null;
-  const isPro = profile ? isActive(profile) : false;
+  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
 
   const displayName =
-    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0]?.trim() ||
-    user.email?.split("@")[0] ||
-    "คุณ";
+    (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0]?.trim() ||
+    user?.email?.split("@")[0] ||
+    "Demo";
 
-  const range = resolveDateRange(period, from, to);
-  const currentPeriod = (["year", "3m", "all", "custom"].includes(period ?? "")
-    ? period
-    : "3m") as Period;
-
-  const data = await getOverviewData(range, user.id, isPro);
+  const home = await getHomeData(userId);
 
   return (
-    <section className="space-y-4">
-      <HomeHeader
-        displayName={displayName}
-        totalIncome={data.totalIncome}
-        totalExpense={data.totalExpense}
+    <section className="space-y-3 pb-4">
+      <HomeHeader displayName={displayName} monthLabel={home.monthLabel} />
+
+      <HomeBalanceCard remaining={home.remaining} daysRemaining={home.daysRemaining} />
+
+      <HomeSummaryCards
+        totalIncome={home.totalIncome}
+        totalExpense={home.totalExpense}
+        totalSavings={home.totalSavings}
+        savingRate={home.savingRate}
       />
 
-      <PeriodSelector
-        current={currentPeriod}
-        customFrom={currentPeriod === "custom" ? from : undefined}
-        customTo={currentPeriod === "custom" ? to : undefined}
+      <HomeBudgetProgress budgetUsed={home.budgetUsed} budgetTotal={home.budgetTotal} />
+
+      <HomeTodayCard
+        todayExpense={home.todayExpense}
+        todayCount={home.todayCount}
+        avgDailyExpense={home.avgDailyExpense}
       />
 
-      <HeroMetrics data={data} />
+      <HomeRecentTransactions transactions={home.recentTransactions} />
 
-      <EmergencyRunwayCard data={data.runway} />
-
-      <DailyPaceCard data={data.dailyPace} />
+      <HomeInsightCard insight={home.insight} />
     </section>
   );
 }
