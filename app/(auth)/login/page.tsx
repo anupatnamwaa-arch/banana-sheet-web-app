@@ -8,8 +8,15 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="glass w-full max-w-sm p-8 text-center">
-        <div className="mb-2 text-4xl">🍌</div>
-        <h1 className="text-2xl font-semibold tracking-tight">Banana Sheet</h1>
+        <div className="mb-4 flex justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Banana Sheet Logo"
+            className="h-16 w-16 object-contain rounded-2xl border border-[var(--glass-border)]/30 shadow-sm"
+          />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Banana Sheet</h1>
         <p className="mt-2 text-sm text-fg-muted">
           Log expenses in a tap. See them beautifully.
         </p>

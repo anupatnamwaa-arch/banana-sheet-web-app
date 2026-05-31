@@ -91,7 +91,7 @@ export const ShareCard = forwardRef<HTMLDivElement, Props>(
               marginBottom: 16,
             }}
           >
-            "{quote}"
+            &ldquo;{quote}&rdquo;
           </div>
 
           {/* Timestamp */}

@@ -1,8 +1,8 @@
 declare module "papaparse" {
-  export interface ParseConfig {
+  export interface ParseConfig<T = Record<string, string>> {
     header?: boolean;
     skipEmptyLines?: boolean;
-    complete?: (results: ParseResult<Record<string, string>>) => void;
+    complete?: (results: ParseResult<T>) => void;
     error?: (error: { message: string }) => void;
   }
 
@@ -13,10 +13,10 @@ declare module "papaparse" {
     };
   }
 
-  function parse<T>(
-    file: File | string,
-    config: ParseConfig
-  ): void;
+  interface PapaStatic {
+    parse<T>(file: File | string, config: ParseConfig<T>): void;
+  }
 
-  export default { parse };
+  const Papa: PapaStatic;
+  export default Papa;
 }

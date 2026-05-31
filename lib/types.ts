@@ -40,12 +40,23 @@ export interface Brand {
   logo_url: string | null;
 }
 
+export interface Wallet {
+  id: string;
+  user_id: string;
+  name: string;
+  balance: number;
+  color: string;
+  icon: string;
+  created_at: string;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
   amount: number;
   category_id: string | null;
   brand_id: string | null;
+  wallet_id: string | null;
   type: TransactionType;
   date: string;
   note: string | null;

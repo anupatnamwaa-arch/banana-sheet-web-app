@@ -21,7 +21,7 @@ export function QuotePicker({ quotes, selected, onSelect }: Props) {
               : "glass text-fg-muted"
           }`}
         >
-          "{q}"
+          &ldquo;{q}&rdquo;
         </button>
       ))}
     </div>

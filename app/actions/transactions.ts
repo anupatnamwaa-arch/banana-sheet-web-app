@@ -8,6 +8,7 @@ export interface TransactionPayload {
   amount: number;        // always positive
   type: TransactionType;
   category_id: string | null;
+  wallet_id?: string | null;
   date: string;          // YYYY-MM-DD Bangkok-local
   note: string | null;
 }
@@ -42,6 +43,7 @@ export async function addTransaction(payload: TransactionPayload): Promise<void>
     amount: payload.amount,
     type: payload.type,
     category_id: payload.category_id,
+    wallet_id: payload.wallet_id || null,
     date: payload.date,
     note: payload.note,
     brand_id,
@@ -65,6 +67,7 @@ export async function updateTransaction(
       amount: payload.amount,
       type: payload.type,
       category_id: payload.category_id,
+      wallet_id: payload.wallet_id || null,
       date: payload.date,
       note: payload.note,
       brand_id,

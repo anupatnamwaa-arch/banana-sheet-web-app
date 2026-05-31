@@ -1,14 +1,15 @@
 // app/(dashboard)/_components/UniversalFabDrawer.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { addTransaction } from "@/app/actions/transactions";
+import { getWallets } from "@/app/actions/wallets";
 import { bangkokToday } from "@/app/actions/overview-utils";
-import type { TransactionType } from "@/lib/types";
+import type { TransactionType, Wallet } from "@/lib/types";
 import type { TransactionPayload } from "@/app/actions/transactions";
-import { useT } from "@/lib/i18n/LanguageProvider";
+import { useT, useLocale } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   categories: Array<{ id: string; name: string }>;
@@ -26,12 +27,26 @@ const inputClass =
 
 export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
   const t = useT();
+  const locale = useLocale();
   const [txType, setTxType] = useState<TransactionType>("expense"); // expense by default
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [walletId, setWalletId] = useState("");
   const [note, setNote] = useState("");
+  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch wallets on mount
+  useEffect(() => {
+    getWallets().then((data) => {
+      setWallets(data);
+      // Pre-select first wallet if available
+      if (data.length > 0) {
+        setWalletId(data[0].id);
+      }
+    }).catch(console.error);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +57,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
       amount: num,
       type: txType,
       category_id: categoryId || null,
+      wallet_id: walletId || null,
       date: bangkokTodayStr(),
       note: note.trim() || null,
     };
@@ -98,7 +114,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
                     : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
               >
-                {type === "expense" ? t.fab.typeExpense : type === "income" ? t.fab.typeIncome : t.fab.typeSavings}
+                {type === "expense" ? t.fab.typeExpense : type === "income" ? t.fab.typeIncome : t.common.savings}
               </button>
             ))}
           </div>
@@ -126,6 +142,24 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
               <option value="">{t.fab.categoryOptional}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Wallet / Account Selector */}
+          {wallets.length > 0 && (
+            <select
+              value={walletId}
+              onChange={(e) => setWalletId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">
+                {locale === "en" ? "— Select Account (optional) —" : "— เลือกกระเป๋าเงิน / บัญชี (ไม่บังคับ) —"}
+              </option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.icon} {w.name}
+                </option>
               ))}
             </select>
           )}
