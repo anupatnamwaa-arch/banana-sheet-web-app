@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { bangkokToday } from "./overview-utils";
+import { bangkokToday, getBillingCycle } from "./overview-utils";
 import { getDictionary, format, type Locale } from "@/lib/i18n";
 
 export interface RecentTransaction {
@@ -46,11 +46,22 @@ export async function getHomeData(userId: string, locale: Locale = "th"): Promis
   const MONTH_NAMES_SHORT = t.calendar.months;
   const yearOffset = t.calendar.yearOffset;
   const supabase = await createClient();
-  const { year, month, day, daysInMonth } = bangkokToday();
-  const bkkOffsetMs = 7 * 3_600_000;
 
-  const monthStart = new Date(Date.UTC(year, month - 1, 1) - bkkOffsetMs).toISOString();
-  const monthEnd = new Date(Date.UTC(year, month, 1) - bkkOffsetMs).toISOString();
+  // Load cycle and balance settings (needed before computing date range)
+  const { data: profileSettings } = await supabase
+    .from("profiles")
+    .select("cycle_start_day, balance_method")
+    .eq("id", userId)
+    .single();
+
+  const cycleStartDay =
+    (profileSettings as { cycle_start_day: number } | null)?.cycle_start_day ?? 1;
+  const balanceMethod =
+    (profileSettings as { balance_method: string } | null)?.balance_method ?? "net";
+
+  const { year, month, day } = bangkokToday();
+  const cycle = getBillingCycle({ year, month, day }, cycleStartDay);
+  const bkkOffsetMs = 7 * 3_600_000;
 
   const todayStart = new Date(Date.UTC(year, month - 1, day) - bkkOffsetMs).toISOString();
   const todayEnd = new Date(Date.UTC(year, month - 1, day + 1) - bkkOffsetMs).toISOString();
@@ -61,8 +72,8 @@ export async function getHomeData(userId: string, locale: Locale = "th"): Promis
       .from("transactions")
       .select("amount, type")
       .eq("user_id", userId)
-      .gte("date", monthStart)
-      .lt("date", monthEnd),
+      .gte("date", cycle.cycleStart)
+      .lt("date", cycle.cycleEnd),
 
     // All budgets
     supabase.from("budgets").select("limit_amount").eq("user_id", userId),
@@ -103,12 +114,16 @@ export async function getHomeData(userId: string, locale: Locale = "th"): Promis
   const budgetTotal = (budgetsResult.data ?? []).reduce((s, b) => s + b.limit_amount, 0);
 
   // Days
-  const daysElapsed = Math.max(1, day);
-  const daysRemaining = Math.max(0, daysInMonth - day);
+  const daysElapsed   = cycle.daysElapsed;
+  const daysRemaining = cycle.daysRemaining;
+  const daysInMonth   = cycle.daysInCycle;
   const avgDailyExpense = totalExpense / daysElapsed;
 
-  // Remaining = income - expense - savings
-  const remaining = totalIncome - totalExpense - totalSavings;
+  // Remaining (method-aware)
+  const remaining =
+    balanceMethod === "gross"  ? totalIncome - totalExpense :
+    balanceMethod === "budget" ? budgetTotal - totalExpense :
+    /* net (default) */          totalIncome - totalExpense - totalSavings;
 
   // Saving rate = savings / income
   const savingRate =
@@ -182,6 +197,17 @@ export async function getHomeData(userId: string, locale: Locale = "th"): Promis
     daysRemaining,
     recentTransactions,
     insight,
-    monthLabel: `${MONTH_NAMES_SHORT[month - 1]} ${year + yearOffset}`,
+    monthLabel: (() => {
+      const { cycleStartMonth, cycleStartYear, cycleEndMonth, cycleEndYear } = cycle;
+      if (cycleStartDay === 1) {
+        return `${MONTH_NAMES_SHORT[cycleStartMonth - 1]} ${cycleStartYear + yearOffset}`;
+      }
+      const endDay = cycleStartDay - 1;
+      const sameYear = cycleStartYear === cycleEndYear;
+      if (sameYear) {
+        return `${cycleStartDay} ${MONTH_NAMES_SHORT[cycleStartMonth - 1]} – ${endDay} ${MONTH_NAMES_SHORT[cycleEndMonth - 1]} ${cycleStartYear + yearOffset}`;
+      }
+      return `${cycleStartDay} ${MONTH_NAMES_SHORT[cycleStartMonth - 1]} ${cycleStartYear + yearOffset} – ${endDay} ${MONTH_NAMES_SHORT[cycleEndMonth - 1]} ${cycleEndYear + yearOffset}`;
+    })(),
   };
 }
