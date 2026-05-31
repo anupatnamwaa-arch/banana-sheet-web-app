@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import type { Dictionary } from "@/lib/i18n";
 
-export function LoginForm() {
+export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,20 +28,20 @@ export function LoginForm() {
   }
 
   async function handleSignUp() {
-    if (!email || !password) { setError("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
+    if (!email || !password) { setError(dict.errorRequiredFields); return; }
     setLoading(true);
     setError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) { setError(error.message); setLoading(false); }
-    else { setError("ส่งอีเมลยืนยันแล้ว — หรือเข้าสู่ระบบได้เลยถ้าปิด email confirmation"); setLoading(false); }
+    else { setError(dict.signUpSuccess); setLoading(false); }
   }
 
   return (
     <form onSubmit={handleLogin} className="mt-8 space-y-3">
       <input
         type="email"
-        placeholder="อีเมล"
+        placeholder={dict.emailPlaceholder}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -48,7 +49,7 @@ export function LoginForm() {
       />
       <input
         type="password"
-        placeholder="รหัสผ่าน"
+        placeholder={dict.passwordPlaceholder}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
@@ -60,7 +61,7 @@ export function LoginForm() {
         disabled={loading}
         className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-50"
       >
-        {loading ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
+        {loading ? dict.loginLoading : dict.loginButton}
       </button>
       <button
         type="button"
@@ -68,11 +69,11 @@ export function LoginForm() {
         disabled={loading}
         className="w-full rounded-2xl border border-[var(--glass-border)] py-3 text-sm font-medium disabled:opacity-50"
       >
-        สมัครใหม่
+        {dict.signUp}
       </button>
       <div className="text-center">
         <a href="/forgot-password" className="text-xs text-fg-muted hover:text-fg transition-colors">
-          ลืมรหัสผ่าน?
+          {dict.forgotPassword}
         </a>
       </div>
     </form>

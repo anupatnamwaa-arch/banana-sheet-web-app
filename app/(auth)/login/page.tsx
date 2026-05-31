@@ -1,6 +1,10 @@
 import { LoginForm } from "./_components/LoginForm";
+import { getDictionary } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const locale = await getLocale();
+  const t = getDictionary(locale);
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="glass w-full max-w-sm p-8 text-center">
@@ -9,7 +13,7 @@ export default function LoginPage() {
         <p className="mt-2 text-sm text-fg-muted">
           Log expenses in a tap. See them beautifully.
         </p>
-        <LoginForm />
+        <LoginForm dict={t.auth} />
       </div>
     </main>
   );
