@@ -16,7 +16,15 @@ export default async function OverviewPage() {
 
   const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
 
+  // Prefer display_name set by user in Settings over auth metadata.
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .single();
+
   const displayName =
+    (profileData as { display_name: string | null } | null)?.display_name?.trim() ||
     (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0]?.trim() ||
     user?.email?.split("@")[0] ||
     "Demo";

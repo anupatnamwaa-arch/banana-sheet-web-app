@@ -24,6 +24,28 @@ export async function regenerateApiKey(): Promise<string> {
 }
 
 /**
+ * Update the user's display name and/or avatar URL.
+ */
+export async function updateProfileDisplay(
+  displayName: string | null,
+  avatarUrl: string | null
+): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: displayName?.trim() || null,
+      avatar_url: avatarUrl,
+    })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Hard-delete all financial data for the current user.
  * Keeps: auth account, profile, categories (just labels).
  * Deletes: transactions, budgets, goals, wealth_debt (cascades snapshots),

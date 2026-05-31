@@ -16,6 +16,8 @@ export interface Profile {
   free_roast_used: boolean;
   last_roast_at: string | null;
   savings_target_pct: number;
+  display_name: string | null;
+  avatar_url: string | null;
   created_at: string;
 }
 

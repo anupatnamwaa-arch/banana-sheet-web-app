@@ -14,6 +14,7 @@ import { CsvExportButton } from "./_components/CsvExportButton";
 import { CsvImportDrawer } from "./_components/CsvImportDrawer";
 import { ApiKeySection } from "./_components/ApiKeySection";
 import { ShortcutGuide } from "./_components/ShortcutGuide";
+import { ProfileHeader } from "./_components/ProfileHeader";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -24,25 +25,27 @@ export default async function SettingsPage() {
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("is_active, plan_expires_at, api_key, savings_target_pct")
+    .select("is_active, plan_expires_at, api_key, savings_target_pct, display_name, avatar_url")
     .eq("id", userId)
     .single();
 
   const profile = profileData as Pick<
     Profile,
-    "is_active" | "plan_expires_at" | "api_key" | "savings_target_pct"
+    "is_active" | "plan_expires_at" | "api_key" | "savings_target_pct" | "display_name" | "avatar_url"
   > | null;
 
   const savingsTarget = profile?.savings_target_pct ?? 20;
   const apiKey = profile?.api_key ?? null;
   const isPro = true; // DEMO
 
+  // display_name (set by user) takes priority over auth metadata
   const displayName =
+    profile?.display_name?.trim() ||
     (user?.user_metadata?.full_name as string | undefined)?.trim() ||
     user?.email?.split("@")[0] ||
     "Demo";
+  const avatarUrl = profile?.avatar_url ?? null;
   const email = user?.email ?? "demo@example.com";
-  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <section className="space-y-5 pb-10">
@@ -61,23 +64,16 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      {/* ── Profile header ──────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-5">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-bold text-black">
-          {initial}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-base font-bold">{displayName}</p>
-          <p className="truncate text-sm text-fg-muted">{email}</p>
-          <span className="mt-1 inline-block rounded-full bg-[var(--glass-bg)] px-2.5 py-0.5 text-xs font-medium text-fg-muted">
-            แผนฟรี
-          </span>
-        </div>
-      </div>
+      {/* ── Profile header (tap to edit) ────────────────────────────────── */}
+      <ProfileHeader
+        userId={userId}
+        initialName={displayName}
+        initialAvatarUrl={avatarUrl}
+        email={email}
+      />
 
       {/* ── 1. บัญชี ─────────────────────────────────────────────────────── */}
       <SettingsSection title="บัญชี">
-        <SettingsRow icon="👤" label="แก้ไขโปรไฟล์" comingSoon />
         <SettingsRow icon="🌏" label="ภาษาและสกุลเงิน" value="ไทย / THB" comingSoon />
         <SettingsRow icon="⭐" label="แผนการใช้งาน" badge="ฟรี" comingSoon />
       </SettingsSection>
