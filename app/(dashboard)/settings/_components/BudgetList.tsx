@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setBudget, deleteBudget } from "@/app/actions/budgets";
+import { categoryIcon } from "@/app/(dashboard)/analytics/_components/category-icon";
 
 interface Props {
   userId: string;
@@ -14,6 +15,7 @@ interface Props {
 interface Category {
   id: string;
   name: string;
+  icon: string | null;
 }
 
 const CATEGORY_COLORS = [
@@ -33,18 +35,44 @@ export function BudgetList({ userId }: Props) {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("categories").select("id, name").eq("user_id", userId).order("name"),
+      // All categories with icon
+      supabase.from("categories").select("id, name, icon").eq("user_id", userId).order("name"),
+      // Existing budgets
       supabase.from("budgets").select("category_id, limit_amount").eq("user_id", userId),
-    ]).then(([catRes, budRes]) => {
-      const cats = (catRes.data ?? []) as Category[];
-      setCategories(cats);
-      const map: Record<string, number> = {};
+      // Distinct category IDs used in expense transactions
+      supabase
+        .from("transactions")
+        .select("category_id")
+        .eq("user_id", userId)
+        .eq("type", "expense")
+        .not("category_id", "is", null),
+    ]).then(([catRes, budRes, expRes]) => {
+      const allCats = (catRes.data ?? []) as Category[];
+
+      const budgetMap: Record<string, number> = {};
       for (const b of (budRes.data ?? []) as Array<{ category_id: string; limit_amount: number }>) {
-        map[b.category_id] = b.limit_amount;
+        budgetMap[b.category_id] = b.limit_amount;
       }
-      setBudgets(map);
+
+      // Build the set of category IDs used in expense transactions
+      const expenseCatIds = new Set(
+        (expRes.data ?? [])
+          .map((r: { category_id: string | null }) => r.category_id)
+          .filter(Boolean) as string[]
+      );
+
+      // Show only categories that appear in expense transactions OR already have a budget set
+      const expenseCats = allCats.filter(
+        (c) => expenseCatIds.has(c.id) || budgetMap[c.id] != null
+      );
+
+      setCategories(expenseCats);
+      setBudgets(budgetMap);
+
       const initInputs: Record<string, string> = {};
-      for (const c of cats) initInputs[c.id] = map[c.id] != null ? String(map[c.id]) : "";
+      for (const c of expenseCats) {
+        initInputs[c.id] = budgetMap[c.id] != null ? String(budgetMap[c.id]) : "";
+      }
       setInputs(initInputs);
       setLoading(false);
     });
@@ -89,8 +117,7 @@ export function BudgetList({ userId }: Props) {
     [categories, inputs]
   );
 
-  const fmt = (n: number) =>
-    `฿${Math.round(n).toLocaleString("th-TH")}`;
+  const fmt = (n: number) => `฿${Math.round(n).toLocaleString("th-TH")}`;
 
   if (loading) {
     return (
@@ -102,7 +129,7 @@ export function BudgetList({ userId }: Props) {
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
-      {/* Collapsed header row — always visible */}
+      {/* Collapsed header row */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -131,16 +158,14 @@ export function BudgetList({ userId }: Props) {
         <div className="border-t border-[var(--glass-border)] px-4 pb-4 pt-3">
           {categories.length === 0 ? (
             <p className="py-4 text-center text-sm text-fg-muted">
-              ยังไม่มีหมวดหมู่ — เพิ่มรายการก่อนแล้วค่อยตั้งงบ
+              ยังไม่มีหมวดหมู่รายจ่าย — เพิ่มรายการค่าใช้จ่ายก่อนแล้วค่อยตั้งงบ
             </p>
           ) : (
             <>
               {/* Total budget banner */}
               <div className="mb-4 flex items-baseline justify-between rounded-2xl bg-[var(--glass-bg)] px-3 py-2.5">
-                <p className="text-xs text-fg-muted">งบรวมทั้งหมด</p>
-                <p className="text-xl font-bold tabular-nums text-accent">
-                  {fmt(liveTotal)}
-                </p>
+                <p className="text-xs text-fg-muted">งบรายจ่ายรวมทั้งหมด</p>
+                <p className="text-xl font-bold tabular-nums text-accent">{fmt(liveTotal)}</p>
               </div>
 
               {/* Category rows */}
@@ -150,15 +175,20 @@ export function BudgetList({ userId }: Props) {
                   const catVal = isNaN(val) ? 0 : val;
                   const pct = liveTotal > 0 ? Math.round((catVal / liveTotal) * 100) : 0;
                   const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+                  const icon = cat.icon || categoryIcon(cat.name);
 
                   return (
                     <div key={cat.id}>
-                      {/* Label row */}
+                      {/* Label + input row */}
                       <div className="mb-1.5 flex items-center gap-2">
+                        {/* Category icon */}
                         <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ background: color }}
-                        />
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm"
+                          style={{ background: `${color}22` }}
+                        >
+                          {icon}
+                        </span>
+
                         <span className="flex-1 truncate text-sm">{cat.name}</span>
 
                         {saved[cat.id] && <Check size={12} className="text-positive" />}
@@ -192,10 +222,7 @@ export function BudgetList({ userId }: Props) {
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
                         <div
                           className="h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${pct}%`,
-                            background: color,
-                          }}
+                          style={{ width: `${pct}%`, background: color }}
                         />
                       </div>
                     </div>
@@ -205,7 +232,7 @@ export function BudgetList({ userId }: Props) {
 
               {/* Footer hint */}
               <p className="mt-4 text-xs text-fg-muted">
-                แตะออกจากช่องเพื่อบันทึกอัตโนมัติ · เว้นว่างหรือใส่ 0 เพื่อลบงบ
+                งบแต่ละหมวดสำหรับ <span className="text-negative">รายจ่าย</span> เท่านั้น · แตะออกจากช่องเพื่อบันทึกอัตโนมัติ
               </p>
             </>
           )}
