@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
@@ -12,7 +13,7 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // if (!user) redirect("/login"); // TODO: re-enable auth before launch
+  if (!user) redirect("/login");
 
   const locale = await getLocale();
   const dict = getDictionary(locale);
