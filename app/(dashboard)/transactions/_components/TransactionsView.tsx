@@ -151,17 +151,6 @@ export function TransactionsView({ userId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, filter, search]);
 
-  // ── Summary totals for the filtered set ──────────────────────────────────────
-  const totals = useMemo(() => {
-    let income = 0, expense = 0, savings = 0;
-    for (const t of filtered) {
-      if (t.type === "income") income += t.amount;
-      else if (t.type === "expense") expense += t.amount;
-      else if (t.type === "savings") savings += t.amount;
-    }
-    return { income, expense, savings };
-  }, [filtered]);
-
   // ── Group by date (groups ordered by sort direction) ─────────────────────────
   const groups = useMemo(() => {
     const map = new Map<string, TransactionRow[]>();
@@ -304,23 +293,6 @@ export function TransactionsView({ userId }: Props) {
         </div>
       </div>
 
-      {/* Summary strip */}
-      {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-[var(--bg-elevated)] p-3 text-center">
-          <div>
-            <p className="text-[11px] text-fg-muted">รายรับ</p>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-positive">{formatTHB(totals.income)}</p>
-          </div>
-          <div className="border-x border-[var(--glass-border)]">
-            <p className="text-[11px] text-fg-muted">รายจ่าย</p>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-negative">{formatTHB(totals.expense)}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-fg-muted">เงินออม</p>
-            <p className="mt-0.5 text-sm font-bold tabular-nums text-blue-400">{formatTHB(totals.savings)}</p>
-          </div>
-        </div>
-      )}
 
       {/* List / states */}
       {loading ? (
