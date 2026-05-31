@@ -12,6 +12,8 @@ import { SavingsTargetSection } from "./_components/SavingsTargetSection";
 import { BudgetList } from "./_components/BudgetList";
 import { CsvExportButton } from "./_components/CsvExportButton";
 import { CsvImportDrawer } from "./_components/CsvImportDrawer";
+import { ApiKeySection } from "./_components/ApiKeySection";
+import { ShortcutGuide } from "./_components/ShortcutGuide";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -32,6 +34,7 @@ export default async function SettingsPage() {
   > | null;
 
   const savingsTarget = profile?.savings_target_pct ?? 20;
+  const apiKey = profile?.api_key ?? null;
   const isPro = true; // DEMO
 
   const displayName =
@@ -130,12 +133,39 @@ export default async function SettingsPage() {
 
       {/* ── 8. ช่วยเหลือ ──────────────────────────────────────────────────── */}
       <SettingsSection title="ช่วยเหลือ">
-        <SettingsRow icon="📖" label="วิธีใช้งาน" comingSoon />
+        {/* Manual guide download */}
+        <a
+          href="/guide.pdf"
+          download
+          className="flex w-full items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--glass-bg)]"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
+            📥
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-medium">ดาวน์โหลดคู่มือใช้งาน</p>
+            <p className="mt-0.5 text-xs text-fg-muted">PDF — วิธีตั้งค่าและใช้งานครบทุกฟีเจอร์</p>
+          </div>
+          <span className="text-xs text-fg-muted">PDF</span>
+        </a>
+
         <SettingsRow icon="❓" label="คำถามที่พบบ่อย" comingSoon />
         <SettingsRow icon="💬" label="ส่งความคิดเห็น" comingSoon />
         <SettingsRow icon="📧" label="ติดต่อเรา" comingSoon />
         <SettingsRow icon="🍌" label="เกี่ยวกับแอป" comingSoon />
         <SettingsRow icon="🏷️" label="เวอร์ชัน" value="1.0.0" />
+      </SettingsSection>
+
+      {/* iOS Shortcut guide — expandable */}
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
+        <ShortcutGuide />
+      </div>
+
+      {/* ── API Key (for Shortcut / developer) ───────────────────────────── */}
+      <SettingsSection title="นักพัฒนา">
+        <div className="px-1">
+          <ApiKeySection initialKey={apiKey} />
+        </div>
       </SettingsSection>
 
       {/* ── 9. โซนอันตราย ────────────────────────────────────────────────── */}
