@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Period } from "@/app/actions/overview";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   current: Period;
@@ -10,15 +11,16 @@ interface Props {
   customTo?: string;
 }
 
-const PRESETS: Array<{ value: Period; label: string }> = [
-  { value: "3m", label: "3 เดือนล่าสุด" },
-  { value: "year", label: "ปีนี้" },
-  { value: "all", label: "ทั้งหมด" },
-  { value: "custom", label: "กำหนดเอง" },
-];
-
 export function PeriodSelector({ current, customFrom, customTo }: Props) {
   const router = useRouter();
+  const t = useT();
+
+  const PRESETS: Array<{ value: Period; label: string }> = [
+    { value: "3m", label: t.overview.period3m },
+    { value: "year", label: t.overview.periodYear },
+    { value: "all", label: t.overview.periodAll },
+    { value: "custom", label: t.overview.periodCustom },
+  ];
   const [showCustom, setShowCustom] = useState(current === "custom");
   const [from, setFrom] = useState(customFrom ?? "");
   const [to, setTo] = useState(customTo ?? "");
@@ -68,7 +70,7 @@ export function PeriodSelector({ current, customFrom, customTo }: Props) {
             onChange={(e) => setFrom(e.target.value)}
             className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
           />
-          <span className="text-fg-muted text-xs">ถึง</span>
+          <span className="text-fg-muted text-xs">{t.overview.periodTo}</span>
           <input
             type="date"
             value={to}
@@ -80,7 +82,7 @@ export function PeriodSelector({ current, customFrom, customTo }: Props) {
             disabled={!from || !to || from > to}
             className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-black disabled:opacity-40"
           >
-            ตกลง
+            {t.overview.periodConfirm}
           </button>
         </div>
       )}
