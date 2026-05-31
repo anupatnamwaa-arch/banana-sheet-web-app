@@ -426,10 +426,14 @@ export const th = {
     forgotSuccess: "ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว",
     backToLogin: "กลับไปหน้าล็อกอิน",
     resetTitle: "ตั้งรหัสผ่านใหม่",
+    resetSubtitle: "กรอกรหัสผ่านใหม่ของคุณ",
     newPasswordPlaceholder: "รหัสผ่านใหม่",
+    confirmPasswordPlaceholder: "ยืนยันรหัสผ่านใหม่",
     resetSubmit: "ตั้งรหัสผ่านใหม่",
     resetSuccess: "รีเซ็ตรหัสผ่านสำเร็จ",
     resetError: "เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน",
+    passwordMismatch: "รหัสผ่านไม่ตรงกัน",
+    passwordTooShort: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
   },
 } as const;
 

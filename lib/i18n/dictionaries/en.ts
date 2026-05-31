@@ -428,9 +428,13 @@ export const en: Dictionary = {
     forgotSuccess: "Password reset link sent to your email",
     backToLogin: "Back to sign in",
     resetTitle: "Set new password",
+    resetSubtitle: "Enter your new password below",
     newPasswordPlaceholder: "New password",
+    confirmPasswordPlaceholder: "Confirm new password",
     resetSubmit: "Set new password",
     resetSuccess: "Password reset successful",
     resetError: "Error resetting password",
+    passwordMismatch: "Passwords do not match",
+    passwordTooShort: "Password must be at least 6 characters",
   },
 };
