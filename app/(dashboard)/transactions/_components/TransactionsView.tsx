@@ -14,6 +14,7 @@ import {
   DEFAULT_FILTER,
   type TxFilter,
 } from "./AdvancedFilterSheet";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   userId: string;
@@ -24,25 +25,7 @@ interface Category {
   name: string;
 }
 
-const THAI_SHORT = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
-
 const pad = (n: number) => String(n).padStart(2, "0");
-
-const TYPE_PILLS: { id: TxFilter["type"]; label: string }[] = [
-  { id: "all", label: "ทั้งหมด" },
-  { id: "income", label: "รายรับ" },
-  { id: "expense", label: "รายจ่าย" },
-  { id: "savings", label: "เงินออม" },
-];
-
-const DATE_PILLS: { id: TxFilter["date"]; label: string }[] = [
-  { id: "today", label: "วันนี้" },
-  { id: "week", label: "สัปดาห์นี้" },
-  { id: "month", label: "เดือนนี้" },
-];
 
 function amountInBucket(amount: number, bucket: TxFilter["amount"]): boolean {
   switch (bucket) {
@@ -55,6 +38,20 @@ function amountInBucket(amount: number, bucket: TxFilter["amount"]): boolean {
 }
 
 export function TransactionsView({ userId }: Props) {
+  const t = useT();
+  const locale = useLocale();
+  const monthNames = t.calendar.months;
+  const typePills: { id: TxFilter["type"]; label: string }[] = [
+    { id: "all", label: t.transactions.all },
+    { id: "income", label: t.transactions.income },
+    { id: "expense", label: t.transactions.expense },
+    { id: "savings", label: t.transactions.savings },
+  ];
+  const datePills: { id: TxFilter["date"]; label: string }[] = [
+    { id: "today", label: t.transactions.today },
+    { id: "week", label: t.transactions.thisWeek },
+    { id: "month", label: t.transactions.thisMonth },
+  ];
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,19 +195,19 @@ export function TransactionsView({ userId }: Props) {
 
   function groupLabel(key: string): string {
     const [y, m, d] = key.split("-").map(Number);
-    const base = `${d} ${THAI_SHORT[m - 1]} ${y + 543}`;
-    if (key === todayKey) return `วันนี้, ${base}`;
-    if (key === yKey) return `เมื่อวาน, ${base}`;
+    const base = `${d} ${monthNames[m - 1]} ${y + t.calendar.yearOffset}`;
+    if (key === todayKey) return `${t.transactions.today}, ${base}`;
+    if (key === yKey) return `${locale === "en" ? "Yesterday" : "เมื่อวาน"}, ${base}`;
     return base;
   }
 
   function groupSubtotal(items: TransactionRow[]): string {
     const exp = items.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-    if (exp > 0) return `ใช้จ่าย ${formatTHB(exp)}`;
+    if (exp > 0) return `${t.transactions.expense} ${formatTHB(exp)}`;
     const inc = items.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    if (inc > 0) return `รายรับ ${formatTHB(inc)}`;
+    if (inc > 0) return `${t.transactions.income} ${formatTHB(inc)}`;
     const sav = items.reduce((s, t) => s + t.amount, 0);
-    return `เงินออม ${formatTHB(sav)}`;
+    return `${t.transactions.savings} ${formatTHB(sav)}`;
   }
 
   const filtersActive =
@@ -221,17 +218,21 @@ export function TransactionsView({ userId }: Props) {
       {/* Header */}
       <header className="flex items-start justify-between pt-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">รายการทั้งหมด</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t.transactions.title}</h1>
           <p className="mt-0.5 text-sm text-fg-muted">
-            ดูและจัดการประวัติรายรับ รายจ่าย และเงินออม
+            {locale === "en"
+              ? "View and manage your income, expenses, and savings history"
+              : "ดูและจัดการประวัติรายรับ รายจ่าย และเงินออม"}
           </p>
           {!loading && (
-            <p className="mt-1 text-xs text-fg-muted">เดือนนี้มี {monthCount} รายการ</p>
+            <p className="mt-1 text-xs text-fg-muted">
+              {locale === "en" ? `${monthCount} entries this month` : `เดือนนี้มี ${monthCount} รายการ`}
+            </p>
           )}
         </div>
         <button
           onClick={() => setSheetOpen(true)}
-          aria-label="ตัวกรอง"
+          aria-label={t.transactions.advancedFilter}
           className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
             filtersActive ? "bg-accent text-black" : "bg-[var(--glass-bg)] text-fg-muted"
           }`}
@@ -246,13 +247,13 @@ export function TransactionsView({ userId }: Props) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="ค้นหารายการ เช่น กาแฟ เงินเดือน ค่าเช่า"
+          placeholder={t.transactions.search}
           className="w-full rounded-full border border-[var(--glass-border)] bg-[var(--bg-elevated)] py-2.5 pl-9 pr-9 text-sm outline-none"
         />
         {search && (
           <button
             onClick={() => setSearch("")}
-            aria-label="ล้างคำค้นหา"
+            aria-label={locale === "en" ? "Clear search" : "ล้างคำค้นหา"}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted"
           >
             <X size={16} />
@@ -263,7 +264,7 @@ export function TransactionsView({ userId }: Props) {
       {/* Quick filter pills */}
       <div className="space-y-2">
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {TYPE_PILLS.map((p) => (
+          {typePills.map((p) => (
             <button
               key={p.id}
               onClick={() => setFilter((f) => ({ ...f, type: p.id }))}
@@ -276,7 +277,7 @@ export function TransactionsView({ userId }: Props) {
           ))}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {DATE_PILLS.map((p) => {
+          {datePills.map((p) => {
             const active = filter.date === p.id;
             return (
               <button
@@ -297,27 +298,33 @@ export function TransactionsView({ userId }: Props) {
       {/* List / states */}
       {loading ? (
         <div className="rounded-2xl bg-[var(--bg-elevated)] p-8 text-center text-sm text-fg-muted">
-          กำลังโหลด…
+          {t.common.loading}
         </div>
       ) : transactions.length === 0 ? (
         <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-8 text-center">
           <p className="text-3xl">🧾</p>
-          <p className="mt-3 text-base font-semibold">ยังไม่มีรายการ</p>
+          <p className="mt-3 text-base font-semibold">{t.transactions.noTransactions}</p>
           <p className="mt-1 text-sm text-fg-muted">
-            เริ่มบันทึกรายรับ รายจ่าย หรือเงินออม แล้วรายการจะแสดงที่นี่
+            {locale === "en"
+              ? "Add income, expenses, or savings and your entries will appear here."
+              : "เริ่มบันทึกรายรับ รายจ่าย หรือเงินออม แล้วรายการจะแสดงที่นี่"}
           </p>
-          <p className="mt-4 text-xs text-fg-muted">แตะปุ่ม + ด้านล่างเพื่อเพิ่มรายการแรก</p>
+          <p className="mt-4 text-xs text-fg-muted">
+            {locale === "en" ? "Tap the + button below to add your first entry." : "แตะปุ่ม + ด้านล่างเพื่อเพิ่มรายการแรก"}
+          </p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-8 text-center">
           <p className="text-3xl">🔍</p>
-          <p className="mt-3 text-base font-semibold">ไม่พบรายการที่ค้นหา</p>
-          <p className="mt-1 text-sm text-fg-muted">ลองเปลี่ยนคำค้นหา หรือปรับตัวกรองอีกครั้ง</p>
+          <p className="mt-3 text-base font-semibold">{t.transactions.noResults}</p>
+          <p className="mt-1 text-sm text-fg-muted">
+            {locale === "en" ? "Try changing your search or filters." : "ลองเปลี่ยนคำค้นหา หรือปรับตัวกรองอีกครั้ง"}
+          </p>
           <button
             onClick={clearAll}
             className="mt-4 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black"
           >
-            ล้างตัวกรอง
+            {t.transactions.clearFilter}
           </button>
         </div>
       ) : (
@@ -403,12 +410,6 @@ function amountDisplay(tx: TransactionRow): { text: string; color: string } {
   return { text: `-${formatTHB(tx.amount)}`, color: "text-negative" };
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  income: "รายรับ",
-  expense: "รายจ่าย",
-  savings: "เงินออม",
-};
-
 function TxRowItem({
   tx,
   onTap,
@@ -422,14 +423,20 @@ function TxRowItem({
   onSwipeDelete: () => void;
   onSwipeDuplicate: () => void;
 }) {
+  const t = useT();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
 
-  const catName = tx.categories?.name ?? TYPE_LABEL[tx.type] ?? "อื่น ๆ";
+  const typeLabel = tx.type === "income"
+    ? t.transactions.income
+    : tx.type === "savings"
+      ? t.transactions.savings
+      : t.transactions.expense;
+  const catName = tx.categories?.name ?? typeLabel;
   const name = tx.note ?? catName;
   const { text, color } = amountDisplay(tx);
   const [, m, d] = bangkokDateKey(tx.date).split("-").map(Number);
-  const dateLabel = `${d} ${THAI_SHORT[m - 1]}`;
+  const dateLabel = `${d}/${m}`;
   const tint =
     tx.type === "income" ? "var(--positive)" : tx.type === "savings" ? "#38bdf8" : "var(--negative)";
 
@@ -444,11 +451,11 @@ function TxRowItem({
     <motion.div layout exit={{ opacity: 0, height: 0 }} className="relative overflow-hidden rounded-2xl">
       {/* Duplicate zone (revealed on right swipe) */}
       <div className="absolute inset-y-0 left-0 flex w-20 items-center justify-center bg-blue-500/80">
-        <span className="text-xs font-medium text-white">ทำซ้ำ</span>
+        <span className="text-xs font-medium text-white">{t.transactions.duplicate}</span>
       </div>
       {/* Delete zone (revealed on left swipe) */}
       <div className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-[var(--negative)]">
-        <span className="text-xs font-medium text-white">ลบ</span>
+        <span className="text-xs font-medium text-white">{t.common.delete}</span>
       </div>
 
       <motion.div
@@ -508,11 +515,13 @@ function ActionMenu({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const items = [
-    { label: "แก้ไข", action: onEdit },
-    { label: "ทำซ้ำ", action: onDuplicate },
-    { label: "ดูรายละเอียด", action: onEdit },
-    { label: "ลบ", action: onDelete, danger: true },
+    { label: t.common.edit, action: onEdit },
+    { label: t.transactions.duplicate, action: onDuplicate },
+    { label: locale === "en" ? "View details" : "ดูรายละเอียด", action: onEdit },
+    { label: t.common.delete, action: onDelete, danger: true },
   ];
   return (
     <>
@@ -552,6 +561,8 @@ function ActionMenu({
 // ─── Delete confirmation ─────────────────────────────────────────────────────
 
 function ConfirmDelete({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <>
       <motion.div
@@ -567,20 +578,22 @@ function ConfirmDelete({ onCancel, onConfirm }: { onCancel: () => void; onConfir
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
       >
-        <p className="text-base font-semibold">ลบรายการนี้?</p>
-        <p className="mt-1 text-sm text-fg-muted">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</p>
+        <p className="text-base font-semibold">{t.transactions.deleteConfirm}</p>
+        <p className="mt-1 text-sm text-fg-muted">
+          {locale === "en" ? "This action cannot be undone." : "เมื่อลบแล้วจะไม่สามารถกู้คืนได้"}
+        </p>
         <div className="mt-5 flex gap-3">
           <button
             onClick={onCancel}
             className="flex-1 rounded-2xl border border-[var(--glass-border)] py-2.5 text-sm font-medium text-fg-muted"
           >
-            ยกเลิก
+            {t.common.cancel}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 rounded-2xl bg-[var(--negative)] py-2.5 text-sm font-semibold text-white"
           >
-            ลบรายการ
+            {t.common.delete}
           </button>
         </div>
       </motion.div>
