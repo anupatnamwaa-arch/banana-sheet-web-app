@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
-import { Lock, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setBudget, deleteBudget } from "@/app/actions/budgets";
 
@@ -17,13 +16,19 @@ interface Category {
   name: string;
 }
 
-export function BudgetList({ userId, isPro }: Props) {
+const CATEGORY_COLORS = [
+  "#34d399","#facc15","#38bdf8","#818cf8",
+  "#fb923c","#a78bfa","#f472b6","#4ade80",
+];
+
+export function BudgetList({ userId }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [errored, setErrored] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -49,8 +54,6 @@ export function BudgetList({ userId, isPro }: Props) {
     const raw = inputs[categoryId]?.trim() ?? "";
     const num = parseFloat(raw);
     const current = budgets[categoryId];
-
-    // No change
     if (raw === "" && current == null) return;
     if (!isNaN(num) && num === current) return;
 
@@ -70,67 +73,144 @@ export function BudgetList({ userId, isPro }: Props) {
     }
   }
 
-  const helper = (
-    <p className="mb-3 text-xs text-fg-muted">
-      ตั้งงบรายเดือนต่อหมวดหมู่ — ใช้กับ Daily Pace และกราฟวงกลม
-    </p>
+  // Live totals from current inputs
+  const liveTotal = useMemo(() => {
+    return categories.reduce((sum, c) => {
+      const v = parseFloat(inputs[c.id] ?? "");
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+  }, [categories, inputs]);
+
+  const budgetedCount = useMemo(
+    () => categories.filter((c) => {
+      const v = parseFloat(inputs[c.id] ?? "");
+      return !isNaN(v) && v > 0;
+    }).length,
+    [categories, inputs]
   );
+
+  const fmt = (n: number) =>
+    `฿${Math.round(n).toLocaleString("th-TH")}`;
 
   if (loading) {
     return (
-      <div className="glass p-5">
-        <p className="text-sm font-medium text-fg-muted">งบประมาณรายหมวดหมู่</p>
-        <p className="mt-2 text-sm text-fg-muted">กำลังโหลด…</p>
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
+        <div className="px-4 py-3.5 text-sm text-fg-muted">กำลังโหลด…</div>
       </div>
     );
   }
 
-  const list = (
-    <div className="space-y-2">
-      {categories.length === 0 && (
-        <p className="text-sm text-fg-muted">ยังไม่มีหมวดหมู่</p>
-      )}
-      {categories.map((cat) => (
-        <div key={cat.id} className="flex items-center gap-3">
-          <span className="flex-1 text-sm">{cat.name}</span>
-          {saved[cat.id] && <Check size={14} className="text-[var(--positive)]" />}
-          {errored[cat.id] && <span className="text-xs text-[var(--negative)]">ผิดพลาด</span>}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-fg-muted">฿</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              placeholder="—"
-              value={inputs[cat.id] ?? ""}
-              onChange={(e) => setInputs((p) => ({ ...p, [cat.id]: e.target.value }))}
-              onBlur={() => handleBlur(cat.id)}
-              className="w-24 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-2 py-1.5 text-right text-sm outline-none"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
-    <div className="glass relative p-5">
-      <p className="text-sm font-medium text-fg-muted">งบประมาณรายหมวดหมู่</p>
-      <div className="mt-3">
-        {helper}
-        {!isPro ? (
-          <div className="relative">
-            <div className="pointer-events-none select-none blur-sm">{list}</div>
-            <div className="absolute inset-0 z-10 flex items-center justify-center">
-              <Link href="/paywall" className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black">
-                🔒 ปลดล็อกด้วย Pro
-              </Link>
-            </div>
-          </div>
+    <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
+      {/* Collapsed header row — always visible */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
+          💰
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">งบใช้จ่ายรายเดือน</p>
+          <p className="mt-0.5 text-xs text-fg-muted">
+            {budgetedCount > 0
+              ? `งบรวม ${fmt(liveTotal)} · ${budgetedCount} หมวด`
+              : "ยังไม่ได้ตั้งงบ — แตะเพื่อตั้งค่า"}
+          </p>
+        </div>
+        {open ? (
+          <ChevronUp size={16} className="shrink-0 text-fg-muted" />
         ) : (
-          list
+          <ChevronDown size={16} className="shrink-0 text-fg-muted" />
         )}
-      </div>
+      </button>
+
+      {/* Expanded body */}
+      {open && (
+        <div className="border-t border-[var(--glass-border)] px-4 pb-4 pt-3">
+          {categories.length === 0 ? (
+            <p className="py-4 text-center text-sm text-fg-muted">
+              ยังไม่มีหมวดหมู่ — เพิ่มรายการก่อนแล้วค่อยตั้งงบ
+            </p>
+          ) : (
+            <>
+              {/* Total budget banner */}
+              <div className="mb-4 flex items-baseline justify-between rounded-2xl bg-[var(--glass-bg)] px-3 py-2.5">
+                <p className="text-xs text-fg-muted">งบรวมทั้งหมด</p>
+                <p className="text-xl font-bold tabular-nums text-accent">
+                  {fmt(liveTotal)}
+                </p>
+              </div>
+
+              {/* Category rows */}
+              <div className="space-y-4">
+                {categories.map((cat, i) => {
+                  const val = parseFloat(inputs[cat.id] ?? "");
+                  const catVal = isNaN(val) ? 0 : val;
+                  const pct = liveTotal > 0 ? Math.round((catVal / liveTotal) * 100) : 0;
+                  const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+
+                  return (
+                    <div key={cat.id}>
+                      {/* Label row */}
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ background: color }}
+                        />
+                        <span className="flex-1 truncate text-sm">{cat.name}</span>
+
+                        {saved[cat.id] && <Check size={12} className="text-positive" />}
+                        {errored[cat.id] && (
+                          <span className="text-xs text-negative">ผิดพลาด</span>
+                        )}
+
+                        {/* Budget input */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-fg-muted">฿</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            placeholder="—"
+                            value={inputs[cat.id] ?? ""}
+                            onChange={(e) =>
+                              setInputs((p) => ({ ...p, [cat.id]: e.target.value }))
+                            }
+                            onBlur={() => handleBlur(cat.id)}
+                            className="w-24 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-2 py-1.5 text-right text-sm outline-none focus:border-accent"
+                          />
+                        </div>
+
+                        <span className="w-9 shrink-0 text-right text-xs tabular-nums text-fg-muted">
+                          {catVal > 0 ? `${pct}%` : "—"}
+                        </span>
+                      </div>
+
+                      {/* % bar */}
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
+                        <div
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${pct}%`,
+                            background: color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer hint */}
+              <p className="mt-4 text-xs text-fg-muted">
+                แตะออกจากช่องเพื่อบันทึกอัตโนมัติ · เว้นว่างหรือใส่ 0 เพื่อลบงบ
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
