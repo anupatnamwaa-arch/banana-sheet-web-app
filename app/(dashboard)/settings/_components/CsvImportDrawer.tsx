@@ -15,7 +15,7 @@ import {
   type TypeMode,
   type TypeColumnMapping,
 } from "./csv-parse";
-import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 const DATE_FORMATS: DateFormat[] = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 
@@ -27,7 +27,6 @@ const DEFAULT_TYPE_COL: TypeColumnMapping = {
 };
 
 export function CsvImportDrawer() {
-  const locale = useLocale();
   const t = useT();
   const [open, setOpen] = useState(false);
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
@@ -66,9 +65,9 @@ export function CsvImportDrawer() {
         note: find(["note", "หมายเหตุ", "description", "remark"]),
       });
     } catch (e) {
-      setParseError(e instanceof Error ? e.message : locale === "en" ? "Could not read the file" : "อ่านไฟล์ไม่ได้");
+      setParseError(e instanceof Error ? e.message : t.settings.csvImportReadError);
     }
-  }, [locale]);
+  }, [t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { "text/csv": [".csv"] }, multiple: false,
@@ -149,7 +148,7 @@ export function CsvImportDrawer() {
 
               {/* Duplicate warning */}
               <p className="mb-4 text-xs text-fg-muted">
-                {locale === "en" ? "⚠ Importing the same file again will create duplicate entries." : "⚠ การนำเข้าซ้ำจะสร้างรายการซ้ำ"}
+                {t.settings.csvImportDupeWarning}
               </p>
 
               {/* SUCCESS STATE */}
@@ -157,18 +156,18 @@ export function CsvImportDrawer() {
                 <div className="flex flex-col items-center gap-3 py-8 text-center">
                   <CheckCircle2 size={40} className="text-positive" />
                   <p className="text-lg font-semibold">
-                    {locale === "en" ? `✓ Imported ${result.inserted} entries` : `✓ นำเข้าสำเร็จ ${result.inserted} รายการ`}
+                    {t.settings.csvImportSuccessTemplate.replace("{count}", String(result.inserted))}
                   </p>
                   {result.skipped > 0 && (
                     <p className="text-sm text-fg-muted">
-                      {locale === "en" ? `Skipped ${result.skipped} invalid entries` : `ข้ามไป ${result.skipped} รายการ (ข้อมูลไม่ถูกต้อง)`}
+                      {t.settings.csvImportSkippedTemplate.replace("{count}", String(result.skipped))}
                     </p>
                   )}
                   <button
                     onClick={() => setOpen(false)}
                     className="mt-2 rounded-2xl bg-accent px-6 py-2 text-sm font-semibold text-black"
                   >
-                    {locale === "en" ? "Done" : "เสร็จสิ้น"}
+                    {t.settings.csvImportDone}
                   </button>
                 </div>
               )}
@@ -187,12 +186,10 @@ export function CsvImportDrawer() {
                     <input {...getInputProps()} />
                     <Upload size={24} className="mx-auto mb-2 text-fg-muted" />
                     <p className="text-sm font-medium">
-                      {isDragActive
-                        ? locale === "en" ? "Drop the file here" : "วางไฟล์ที่นี่"
-                        : locale === "en" ? "Drop a CSV file or tap to choose" : "วางไฟล์ CSV หรือแตะเพื่อเลือก"}
+                      {isDragActive ? t.settings.csvImportDropActive : t.settings.csvImportDropIdle}
                     </p>
                     <p className="mt-1 text-xs text-fg-muted">
-                      {locale === "en" ? "Supports bank exports, Google Sheets, and more." : "รองรับ: ธนาคาร, Google Sheets, ฯลฯ"}
+                      {t.settings.csvImportDropHint}
                     </p>
                   </div>
 
@@ -208,16 +205,16 @@ export function CsvImportDrawer() {
                     <div className="space-y-5">
                       {/* Column mapping */}
                       <div>
-                        <p className="mb-3 text-sm font-medium">จับคู่คอลัมน์</p>
+                        <p className="mb-3 text-sm font-medium">{t.settings.csvImportMapTitle}</p>
                         <div className="space-y-3">
                           {(
                             [
-                              { field: "date" as const, label: "วันที่", required: true },
-                              { field: "amount" as const, label: "จำนวนเงิน", required: true },
-                              { field: "category" as const, label: "หมวดหมู่", required: false },
-                              { field: "note" as const, label: "หมายเหตุ", required: false },
+                              { field: "date" as const, label: t.settings.csvImportColDate, required: true },
+                              { field: "amount" as const, label: t.settings.csvImportColAmount, required: true },
+                              { field: "category" as const, label: t.settings.csvImportColCategory, required: false },
+                              { field: "note" as const, label: t.settings.csvImportColNote, required: false },
                               ...(typeMode === "column"
-                                ? [{ field: "type" as const, label: "ประเภท", required: true }]
+                                ? [{ field: "type" as const, label: t.settings.csvImportColType, required: true }]
                                 : []),
                             ] as Array<{ field: keyof ColumnMapping; label: string; required: boolean }>
                           ).map(({ field, label, required }) => (
@@ -232,7 +229,7 @@ export function CsvImportDrawer() {
                                   setMapping((m) => ({ ...m, [field]: e.target.value }))
                                 }
                               >
-                                <option value="">— ไม่เลือก —</option>
+                                <option value="">{t.settings.csvImportNoSelect}</option>
                                 {parsed.headers.map((h) => (
                                   <option key={h} value={h}>{h}</option>
                                 ))}
@@ -244,7 +241,7 @@ export function CsvImportDrawer() {
 
                       {/* Date format */}
                       <div className="flex items-center gap-3">
-                        <span className="w-24 shrink-0 text-sm text-fg-muted">รูปแบบวันที่</span>
+                        <span className="w-24 shrink-0 text-sm text-fg-muted">{t.settings.csvImportDateFormat}</span>
                         <select
                           className={selectClass}
                           value={dateFormat}
@@ -258,12 +255,12 @@ export function CsvImportDrawer() {
 
                       {/* Type mode */}
                       <div>
-                        <p className="mb-2 text-sm text-fg-muted">ระบุประเภท (รายรับ/รายจ่าย)</p>
+                        <p className="mb-2 text-sm text-fg-muted">{t.settings.csvImportTypeMode}</p>
                         <div className="flex gap-2">
                           {(
                             [
-                              { value: "sign" as TypeMode, label: "อ่านจากเครื่องหมาย" },
-                              { value: "column" as TypeMode, label: "เลือกคอลัมน์" },
+                              { value: "sign" as TypeMode, label: t.settings.csvImportTypeModeSign },
+                              { value: "column" as TypeMode, label: t.settings.csvImportTypeModeColumn },
                             ]
                           ).map(({ value, label }) => (
                             <button
@@ -283,10 +280,10 @@ export function CsvImportDrawer() {
                         {typeMode === "column" && (
                           <div className="mt-3 space-y-2">
                             <div className="flex items-center gap-3">
-                              <span className="w-24 shrink-0 text-xs text-fg-muted">ค่าใดคือรายจ่าย?</span>
+                              <span className="w-24 shrink-0 text-xs text-fg-muted">{t.settings.csvImportExpenseValue}</span>
                               <input
                                 className={selectClass}
-                                placeholder="เช่น DR, expense, out"
+                                placeholder="e.g. DR, expense, out"
                                 value={typeColMapping.expenseValue}
                                 onChange={(e) =>
                                   setTypeColMapping((m) => ({ ...m, expenseValue: e.target.value }))
@@ -294,10 +291,10 @@ export function CsvImportDrawer() {
                               />
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="w-24 shrink-0 text-xs text-fg-muted">ค่าใดคือรายรับ?</span>
+                              <span className="w-24 shrink-0 text-xs text-fg-muted">{t.settings.csvImportIncomeValue}</span>
                               <input
                                 className={selectClass}
-                                placeholder="เช่น CR, income, in"
+                                placeholder="e.g. CR, income, in"
                                 value={typeColMapping.incomeValue}
                                 onChange={(e) =>
                                   setTypeColMapping((m) => ({ ...m, incomeValue: e.target.value }))
@@ -311,15 +308,15 @@ export function CsvImportDrawer() {
                       {/* STAGE 3: Live Preview */}
                       {mapping.date && (
                         <div>
-                          <p className="mb-2 text-sm font-medium">ตัวอย่าง 5 รายการแรก</p>
+                          <p className="mb-2 text-sm font-medium">{t.settings.csvImportPreviewTitle}</p>
                           <div className="overflow-x-auto rounded-xl border border-[var(--glass-border)]">
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="border-b border-[var(--glass-border)] text-fg-muted">
-                                  <th className="px-3 py-2 text-left">วันที่</th>
-                                  <th className="px-3 py-2 text-right">จำนวน</th>
-                                  <th className="px-3 py-2 text-left">ประเภท</th>
-                                  <th className="px-3 py-2 text-left">หมวดหมู่</th>
+                                  <th className="px-3 py-2 text-left">{t.settings.csvImportPreviewDate}</th>
+                                  <th className="px-3 py-2 text-right">{t.settings.csvImportPreviewAmount}</th>
+                                  <th className="px-3 py-2 text-left">{t.settings.csvImportPreviewType}</th>
+                                  <th className="px-3 py-2 text-left">{t.settings.csvImportPreviewCategory}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -331,7 +328,7 @@ export function CsvImportDrawer() {
                                         {r.row.type === "expense" ? "-" : "+"}{formatTHB(r.row.amount)}
                                       </td>
                                       <td className="px-3 py-2">
-                                        {r.row.type === "expense" ? "รายจ่าย" : "รายรับ"}
+                                        {r.row.type === "expense" ? t.settings.csvImportTypeExpense : t.settings.csvImportTypeIncome}
                                       </td>
                                       <td className="px-3 py-2 text-fg-muted">{r.row.category ?? "—"}</td>
                                     </tr>
@@ -366,7 +363,7 @@ export function CsvImportDrawer() {
                       >
                         {submitting
                           ? t.settings.csvImporting
-                          : locale === "en" ? `Import ${validRowCount} entries` : `นำเข้า ${validRowCount} รายการ`}
+                          : t.settings.csvImportConfirmTemplate.replace("{count}", String(validRowCount))}
                       </button>
                     </div>
                   )}

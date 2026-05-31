@@ -10,8 +10,8 @@ export function ShortcutGuide() {
       <summary className="cursor-pointer list-none p-5">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">📱 {t.settings.shortcutGuide}</p>
-          <span className="text-xs text-fg-muted group-open:hidden">{locale === "en" ? "Show ▾" : "แสดง ▾"}</span>
-          <span className="hidden text-xs text-fg-muted group-open:inline">{locale === "en" ? "Hide ▴" : "ซ่อน ▴"}</span>
+          <span className="text-xs text-fg-muted group-open:hidden">{t.settings.shortcutShow}</span>
+          <span className="hidden text-xs text-fg-muted group-open:inline">{t.settings.shortcutHide}</span>
         </div>
       </summary>
 

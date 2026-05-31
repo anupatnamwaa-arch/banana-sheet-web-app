@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateProfileDisplay } from "@/app/actions/profile";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   userId: string;
@@ -21,6 +22,7 @@ export function EditProfileSheet({
   onClose,
   onSaved,
 }: Props) {
+  const t = useT();
   const [name, setName] = useState(currentName);
   const [avatarUrl] = useState<string | null>(currentAvatarUrl);
   const [preview, setPreview] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function EditProfileSheet({
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) {
-      setError("ไฟล์ภาพต้องไม่เกิน 5 MB");
+      setError(t.settings.editProfileFileSizeError);
       return;
     }
     setFile(f);
@@ -70,7 +72,7 @@ export function EditProfileSheet({
       onSaved(name.trim() || currentName, finalUrl);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.settings.editProfileSaveError);
     } finally {
       setSaving(false);
     }
@@ -100,7 +102,7 @@ export function EditProfileSheet({
           <div className="h-1 w-10 rounded-full bg-[var(--glass-border)]" />
         </div>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">แก้ไขโปรไฟล์</h2>
+          <h2 className="text-lg font-semibold">{t.settings.editProfileTitle}</h2>
           <button onClick={() => { if (!saving) onClose(); }} disabled={saving}>
             <X size={20} className="text-fg-muted" />
           </button>
@@ -133,7 +135,7 @@ export function EditProfileSheet({
               <Camera size={14} className="text-fg" />
             </div>
           </button>
-          <p className="text-xs text-fg-muted">แตะเพื่อเปลี่ยนรูปโปรไฟล์</p>
+          <p className="text-xs text-fg-muted">{t.settings.editProfilePhotoHint}</p>
           <input
             ref={fileRef}
             type="file"
@@ -146,11 +148,11 @@ export function EditProfileSheet({
         {/* Nickname */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-fg-muted">
-            ชื่อเล่น / ชื่อที่ใช้แสดง
+            {t.settings.editProfileNicknameLabel}
           </label>
           <input
             type="text"
-            placeholder="เช่น กล้วย, มิ้ง, อาย..."
+            placeholder={t.settings.editProfileNicknamePlaceholder}
             value={name}
             maxLength={40}
             onChange={(e) => setName(e.target.value)}
@@ -171,7 +173,7 @@ export function EditProfileSheet({
           disabled={saving}
           className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-40"
         >
-          {saving ? "กำลังบันทึก…" : "บันทึก"}
+          {saving ? t.settings.savingProfile : t.settings.saveProfile}
         </button>
       </motion.div>
     </AnimatePresence>

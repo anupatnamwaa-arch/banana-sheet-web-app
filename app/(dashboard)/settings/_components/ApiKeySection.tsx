@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Copy, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import { regenerateApiKey } from "@/app/actions/profile";
-import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   initialKey: string | null;
@@ -17,7 +17,6 @@ function maskKey(key: string): string {
 }
 
 export function ApiKeySection({ initialKey }: Props) {
-  const locale = useLocale();
   const t = useT();
   const [key, setKey] = useState<string | null>(initialKey);
   const [copied, setCopied] = useState(false);
@@ -108,9 +107,7 @@ export function ApiKeySection({ initialKey }: Props) {
 
       {/* Warning */}
       <p className="text-xs text-fg-muted">
-        {locale === "en"
-          ? "⚠ Do not share this key. Anyone with it can add entries."
-          : "⚠ ห้ามแชร์ Key นี้ — ใครมี Key สามารถเพิ่มรายการได้"}
+        {t.settings.apiKeyWarning}
       </p>
     </div>
   );
