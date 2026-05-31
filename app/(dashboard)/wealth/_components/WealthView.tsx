@@ -9,6 +9,7 @@ import { WealthFormDrawer, type WealthRow } from "./WealthFormDrawer";
 import { GoalFormDrawer } from "./GoalFormDrawer";
 import { WealthTrendChart } from "./WealthTrendChart";
 import { AssetGrowthChart } from "./AssetGrowthChart";
+import { WealthImportDrawer } from "./WealthImportDrawer";
 
 const THAI_MONTHS = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
@@ -120,13 +121,18 @@ export function WealthView({ data }: { data: WealthData }) {
     <section className="space-y-4 pb-4">
       {/* Header */}
       <header className="pt-2">
-        <h1 className="text-2xl font-bold tracking-tight">ความมั่งคั่ง</h1>
-        <p className="mt-0.5 text-sm text-fg-muted">
-          ดูภาพรวมสินทรัพย์ หนี้สิน และเป้าหมายการเงินของคุณ
-        </p>
-        {updatedAt && (
-          <p className="mt-1 text-xs text-fg-muted">อัปเดตล่าสุด: {thaiDate(updatedAt)}</p>
-        )}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">ความมั่งคั่ง</h1>
+            <p className="mt-0.5 text-sm text-fg-muted">
+              ดูภาพรวมสินทรัพย์ หนี้สิน และเป้าหมายการเงินของคุณ
+            </p>
+            {updatedAt && (
+              <p className="mt-1 text-xs text-fg-muted">อัปเดตล่าสุด: {thaiDate(updatedAt)}</p>
+            )}
+          </div>
+          <WealthImportDrawer onSuccess={refresh} />
+        </div>
       </header>
 
       {!hasData ? (
@@ -136,12 +142,18 @@ export function WealthView({ data }: { data: WealthData }) {
           <p className="mt-1 text-sm text-fg-muted">
             เพิ่มสินทรัพย์ หนี้สิน หรือเป้าหมายการเงิน เพื่อดูมูลค่าสุทธิของคุณ
           </p>
-          <div className="mt-5 flex justify-center gap-2">
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
               onClick={() => setWealthDrawer({ mode: "add", initialType: "asset" })}
               className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black"
             >
-              เพิ่มสินทรัพย์
+              เพิ่มทรัพย์สิน
+            </button>
+            <button
+              onClick={() => setWealthDrawer({ mode: "add", initialType: "liability" })}
+              className="rounded-full border border-[var(--glass-border)] px-4 py-1.5 text-xs font-semibold text-fg"
+            >
+              เพิ่มหนี้สิน
             </button>
             <button
               onClick={() => setGoalDrawer({ mode: "add" })}
@@ -149,6 +161,9 @@ export function WealthView({ data }: { data: WealthData }) {
             >
               เพิ่มเป้าหมาย
             </button>
+          </div>
+          <div className="mt-3 flex justify-center">
+            <WealthImportDrawer onSuccess={refresh} />
           </div>
         </Card>
       ) : (
