@@ -34,6 +34,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Light theme (กล้วยครีม) ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg: #fffbf0;
+  --bg-elevated: #ffffff;
+  --fg: #1c1917;
+  --fg-muted: #78716c;
+  --accent: #d97706;
+  --positive: #059669;
+  --negative: #dc2626;
+  --glass-bg: rgba(0, 0, 0, 0.04);
+  --glass-border: rgba(0, 0, 0, 0.09);
+}
+
+/* ── Hide-balance mode — blurs all tabular numbers ────────────────────────── */
+html.hide-balance .tabular-nums {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.2s;
+}
+
 /* Reusable glass card surface. */
 @utility glass {
   background: var(--glass-bg);

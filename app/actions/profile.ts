@@ -24,6 +24,33 @@ export async function regenerateApiKey(): Promise<string> {
 }
 
 /**
+ * Hard-delete all financial data for the current user.
+ * Keeps: auth account, profile, categories (just labels).
+ * Deletes: transactions, budgets, goals, wealth_debt (cascades snapshots),
+ *          net_worth_snapshots.
+ */
+export async function deleteAllUserData(): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+  const uid = user.id;
+
+  // Order matters — delete FK-referencing tables first.
+  const tables = [
+    "budgets",
+    "transactions",
+    "goals",
+    "wealth_debt",           // cascades wealth_item_snapshots
+    "net_worth_snapshots",   // cascades nothing
+  ] as const;
+
+  for (const table of tables) {
+    const { error } = await supabase.from(table).delete().eq("user_id", uid);
+    if (error) throw new Error(`ลบ ${table} ไม่สำเร็จ: ${error.message}`);
+  }
+}
+
+/**
  * Update the current user's savings-rate target (percent of income, 0–100).
  * Returns the clamped value that was saved.
  */

@@ -27,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th" className={`${notoSansThai.variable} dark h-full antialiased`}>
+    <html lang="th" className={`${notoSansThai.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );
