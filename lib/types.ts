@@ -16,6 +16,9 @@ export interface Profile {
   free_roast_used: boolean;
   last_roast_at: string | null;
   savings_target_pct: number;
+  cycle_start_day: number;    // 1–28, day the billing period starts (default 1)
+  emergency_months: number;   // 1–24, target months of emergency runway (default 6)
+  balance_method: "net" | "gross" | "budget"; // how 'remaining' is calculated (default 'net')
   display_name: string | null;
   avatar_url: string | null;
   created_at: string;
