@@ -1,45 +1,56 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { setLocale } from "@/app/actions/locale";
-import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
+import { useT, useLocale } from "@/lib/i18n/LanguageProvider";
+import type { Locale } from "@/lib/i18n";
 
 export function LanguageSection() {
-  const locale = useLocale();
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
-  function changeLocale(nextLocale: "th" | "en") {
-    if (nextLocale === locale) return;
+  function handleSelect(next: Locale) {
+    if (next === locale) return;
     startTransition(async () => {
-      await setLocale(nextLocale);
+      await setLocale(next);
       router.refresh();
     });
   }
 
+  const options: { value: Locale; label: string }[] = [
+    { value: "th", label: "ไทย" },
+    { value: "en", label: "English" },
+  ];
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
-        🌏
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{t.settings.language}</p>
-        <p className="text-xs text-fg-muted">{t.settings.currencyLabel}: THB</p>
+    <div className={`px-4 py-3.5 ${isPending ? "opacity-60" : ""}`}>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
+          🌏
+        </span>
+        <div className="flex-1">
+          <p className="text-sm font-medium">{t.settings.languageCurrency}</p>
+          <p className="mt-0.5 text-xs text-fg-muted">{t.settings.currencyLabel}: THB</p>
+        </div>
       </div>
-      <div className="flex rounded-xl bg-[var(--glass-bg)] p-1" aria-label={t.settings.language}>
-        {(["th", "en"] as const).map((value) => (
+
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((opt) => (
           <button
-            key={value}
+            key={opt.value}
             type="button"
-            disabled={pending}
-            onClick={() => changeLocale(value)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              locale === value ? "bg-accent text-black" : "text-fg-muted"
+            onClick={() => handleSelect(opt.value)}
+            disabled={isPending}
+            className={`rounded-2xl border py-3 text-sm font-medium transition-all ${
+              locale === opt.value
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-[var(--glass-border)] text-fg-muted"
             }`}
           >
-            {value === "th" ? "ไทย" : "EN"}
+            {opt.label}
           </button>
         ))}
       </div>

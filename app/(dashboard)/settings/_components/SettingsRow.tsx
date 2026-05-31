@@ -1,8 +1,5 @@
-"use client";
-
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   icon?: React.ReactNode;
@@ -22,7 +19,6 @@ interface Props {
 export function SettingsRow({
   icon, label, sublabel, value, badge, danger, comingSoon, comingSoonLabel, onClick, href, right,
 }: Props) {
-  const t = useT();
   const className = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${
     onClick || href ? "hover:bg-[var(--glass-bg)] active:bg-[var(--glass-bg)]" : ""
   }`;
@@ -41,7 +37,7 @@ export function SettingsRow({
 
       {comingSoon && (
         <span className="shrink-0 rounded-full bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] text-fg-muted">
-          {comingSoonLabel ?? t.common.comingSoon}
+          {comingSoonLabel ?? "เร็ว ๆ นี้"}
         </span>
       )}
       {badge && !comingSoon && (

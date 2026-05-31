@@ -23,6 +23,7 @@ import { getLocale } from "@/lib/i18n/locale";
 export default async function SettingsPage() {
   const locale = await getLocale();
   const t = getDictionary(locale);
+  const cs = t.common.comingSoon;
   const supabase = await createClient();
   const {
     data: { user },
@@ -93,7 +94,7 @@ export default async function SettingsPage() {
 
       {/* ── 2. การเงิน ───────────────────────────────────────────────────── */}
       <SettingsSection title={t.settings.sectionFinance}>
-        <SettingsRow icon="📅" label={t.settings.billingCycle} value={t.settings.billingCycleValue} comingSoon />
+        <SettingsRow icon="📅" label={t.settings.billingCycle} value={t.settings.billingCycleValue} comingSoon comingSoonLabel={cs} />
         <SettingsRow
           icon="💰"
           label={t.settings.monthlyBudget}
@@ -127,7 +128,7 @@ export default async function SettingsPage() {
         </p>
         <BudgetList userId={userId} isPro={isPro} />
         <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
-          <SettingsRow icon="👛" label={t.settings.wallets} comingSoon />
+          <SettingsRow icon="👛" label={t.settings.wallets} comingSoon comingSoonLabel={cs} />
         </div>
       </div>
 
@@ -145,14 +146,14 @@ export default async function SettingsPage() {
         <div className="px-4 py-2">
           <CsvImportDrawer />
         </div>
-        <SettingsRow icon="☁️" label={t.settings.backup} comingSoon />
+        <SettingsRow icon="☁️" label={t.settings.backup} comingSoon comingSoonLabel={cs} />
       </SettingsSection>
 
       {/* ── 7. ความปลอดภัย ───────────────────────────────────────────────── */}
       <SettingsSection title={t.settings.sectionSecurity}>
-        <SettingsRow icon="🔒" label={t.settings.lockApp} comingSoon />
-        <SettingsRow icon="🫆" label="Face ID / Touch ID" comingSoon />
-        <SettingsRow icon="📄" label={t.settings.privacyPolicy} comingSoon />
+        <SettingsRow icon="🔒" label={t.settings.lockApp} comingSoon comingSoonLabel={cs} />
+        <SettingsRow icon="🫆" label="Face ID / Touch ID" comingSoon comingSoonLabel={cs} />
+        <SettingsRow icon="📄" label={t.settings.privacyPolicy} comingSoon comingSoonLabel={cs} />
       </SettingsSection>
 
       {/* ── 8. ช่วยเหลือ ──────────────────────────────────────────────────── */}
@@ -173,10 +174,10 @@ export default async function SettingsPage() {
           <span className="text-xs text-fg-muted">PDF</span>
         </a>
 
-        <SettingsRow icon="❓" label={t.settings.faq} comingSoon />
-        <SettingsRow icon="💬" label={t.settings.feedback} comingSoon />
-        <SettingsRow icon="📧" label={t.settings.contact} comingSoon />
-        <SettingsRow icon="🍌" label={t.settings.about} comingSoon />
+        <SettingsRow icon="❓" label={t.settings.faq} comingSoon comingSoonLabel={cs} />
+        <SettingsRow icon="💬" label={t.settings.feedback} comingSoon comingSoonLabel={cs} />
+        <SettingsRow icon="📧" label={t.settings.contact} comingSoon comingSoonLabel={cs} />
+        <SettingsRow icon="🍌" label={t.settings.about} comingSoon comingSoonLabel={cs} />
         <SettingsRow icon="🏷️" label={t.settings.version} value="1.0.0" />
       </SettingsSection>
 
