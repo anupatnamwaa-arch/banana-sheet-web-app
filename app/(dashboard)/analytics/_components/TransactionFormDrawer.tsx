@@ -8,6 +8,7 @@ import { addTransaction, updateTransaction, deleteTransaction } from "@/app/acti
 import { bangkokToday } from "@/app/actions/overview-utils";
 import type { TransactionPayload } from "@/app/actions/transactions";
 import type { TransactionType } from "@/lib/types";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 export interface TransactionRow {
   id: string;
@@ -40,6 +41,8 @@ export function TransactionFormDrawer({
   onClose,
   onSuccess,
 }: Props) {
+  const locale = useLocale();
+  const t = useT();
   const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
   const [type, setType] = useState<TransactionType>(transaction?.type ?? "expense");
   const [categoryId, setCategoryId] = useState(transaction?.category_id ?? "");
@@ -52,8 +55,8 @@ export function TransactionFormDrawer({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const num = parseFloat(amount);
-    if (!num || num <= 0) { setError("กรุณากรอกจำนวนเงินที่ถูกต้อง"); return; }
-    if (!date) { setError("กรุณาเลือกวันที่"); return; }
+    if (!num || num <= 0) { setError(t.fab.errorAmount); return; }
+    if (!date) { setError(locale === "en" ? "Please select a date" : "กรุณาเลือกวันที่"); return; }
 
     setLoading(true); setError(null);
     const payload: TransactionPayload = {
@@ -70,7 +73,7 @@ export function TransactionFormDrawer({
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.common.error);
       setLoading(false);
     }
   }
@@ -83,7 +86,7 @@ export function TransactionFormDrawer({
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.common.error);
       setDeleting(false);
     }
   }
@@ -110,7 +113,7 @@ export function TransactionFormDrawer({
         </div>
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {mode === "add" ? "เพิ่มรายการ" : "แก้ไขรายการ"}
+            {mode === "add" ? t.fab.title : locale === "en" ? "Edit entry" : "แก้ไขรายการ"}
           </h2>
           <button onClick={() => { if (!loading && !deleting) onClose(); }} disabled={loading || deleting}>
             <X size={20} className="text-fg-muted" />
@@ -120,16 +123,16 @@ export function TransactionFormDrawer({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type toggle */}
           <div className="flex gap-2">
-            {(["expense", "income", "savings"] as TransactionType[]).map((t) => (
+            {(["expense", "income", "savings"] as TransactionType[]).map((entryType) => (
               <button
-                key={t}
+                key={entryType}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => setType(entryType)}
                 className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
-                  type === t ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
+                  type === entryType ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
               >
-                {t === "expense" ? "รายจ่าย" : t === "income" ? "รายรับ" : "ออมเงิน"}
+                {entryType === "expense" ? t.common.expense : entryType === "income" ? t.common.income : t.common.savings}
               </button>
             ))}
           </div>
@@ -140,7 +143,7 @@ export function TransactionFormDrawer({
             inputMode="decimal"
             min="0"
             step="any"
-            placeholder="จำนวนเงิน (฿)"
+            placeholder={t.fab.amountPlaceholder}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className={inputClass}
@@ -153,7 +156,7 @@ export function TransactionFormDrawer({
             onChange={(e) => setCategoryId(e.target.value)}
             className={inputClass}
           >
-            <option value="">— หมวดหมู่ (ไม่บังคับ) —</option>
+            <option value="">{t.fab.categoryOptional}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -171,7 +174,7 @@ export function TransactionFormDrawer({
           {/* Note */}
           <input
             type="text"
-            placeholder="หมายเหตุ (ไม่บังคับ)"
+            placeholder={t.fab.notePlaceholder}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className={inputClass}
@@ -189,7 +192,7 @@ export function TransactionFormDrawer({
             disabled={loading || deleting}
             className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-40"
           >
-            {loading ? "กำลังบันทึก…" : mode === "add" ? "บันทึก" : "อัปเดต"}
+            {loading ? t.fab.submitting : mode === "add" ? t.common.save : locale === "en" ? "Update" : "อัปเดต"}
           </button>
 
           {mode === "edit" && (
@@ -200,7 +203,7 @@ export function TransactionFormDrawer({
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--negative)]/40 py-3 text-sm font-medium text-[var(--negative)] disabled:opacity-40"
             >
               <Trash2 size={16} />
-              {deleting ? "กำลังลบ…" : "ลบรายการ"}
+              {deleting ? t.common.loading : t.common.delete}
             </button>
           )}
         </form>

@@ -1,16 +1,20 @@
+"use client";
+
 import { formatTHB } from "@/lib/format";
 import type { CategoryMove } from "@/app/actions/analytics";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   movers: CategoryMove[];
 }
 
 export function ComparisonInsight({ movers }: Props) {
+  const t = useT();
   if (movers.length === 0) return null;
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
-      <p className="mb-3 text-sm font-semibold">เทียบกับช่วงก่อน</p>
+      <p className="mb-3 text-sm font-semibold">{t.analytics.comparisonTitle}</p>
       <div className="space-y-2.5">
         {movers.map((m) => {
           const up = m.delta > 0;
@@ -19,8 +23,8 @@ export function ComparisonInsight({ movers }: Props) {
           const arrow = up ? "↑" : "↓";
           const detail =
             m.pct !== null
-              ? `${up ? "เพิ่มขึ้น" : "ลดลง"} ${Math.abs(m.pct)}%`
-              : `${up ? "เพิ่มขึ้น" : "ลดลง"} ${formatTHB(Math.abs(m.delta))}`;
+              ? `${up ? t.analytics.comparisonUp : t.analytics.comparisonDown} ${Math.abs(m.pct)}%`
+              : `${up ? t.analytics.comparisonUp : t.analytics.comparisonDown} ${formatTHB(Math.abs(m.delta))}`;
           return (
             <div key={m.name} className="flex items-center justify-between text-xs">
               <span className="truncate text-fg">{m.name}</span>

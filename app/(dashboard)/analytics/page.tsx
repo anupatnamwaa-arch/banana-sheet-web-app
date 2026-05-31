@@ -14,6 +14,8 @@ import { TopSpendingInsight } from "./_components/TopSpendingInsight";
 import { ComparisonInsight } from "./_components/ComparisonInsight";
 import { SmartInsights } from "./_components/SmartInsights";
 import { AnalyticsEmptyState } from "./_components/AnalyticsEmptyState";
+import { getDictionary } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/locale";
 
 interface SearchParams {
   period?: string;
@@ -33,6 +35,8 @@ export default async function AnalyticsPage({
       ? { from: rawFrom!, to: rawTo! }
       : undefined;
   const period = normalizePeriod(rawPeriod);
+  const locale = await getLocale();
+  const t = getDictionary(locale);
 
   const supabase = await createClient();
   const {
@@ -48,7 +52,7 @@ export default async function AnalyticsPage({
   const savingsTarget =
     (profileData as { savings_target_pct: number } | null)?.savings_target_pct ?? 20;
 
-  const analytics = await getAnalyticsData(userId, period, savingsTarget, range);
+  const analytics = await getAnalyticsData(userId, period, savingsTarget, range, locale);
 
   return (
     <section className="space-y-4 pb-4">
@@ -56,9 +60,9 @@ export default async function AnalyticsPage({
       <RoastEntryCard />
 
       <header className="pt-1">
-        <h1 className="text-2xl font-bold tracking-tight">วิเคราะห์การเงิน</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t.analytics.title}</h1>
         <p className="mt-0.5 text-sm text-fg-muted">
-          ดูพฤติกรรมรายรับ รายจ่าย และการออมของคุณ
+          {t.analytics.subtitle}
         </p>
       </header>
 

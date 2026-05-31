@@ -3,32 +3,29 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ANALYTICS_PERIODS, type AnalyticsPeriod } from "@/app/actions/analytics-utils";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   current: AnalyticsPeriod;
   selectedRange: { from: string; to: string } | null;
 }
 
-const THAI_MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
-
-function ymLabel(ym: string): string {
+function ymLabel(ym: string, months: readonly string[], yearOffset: number): string {
   const [y, m] = ym.split("-").map(Number);
-  return `${THAI_MONTHS[m - 1]} ${y + 543}`;
+  return `${months[m - 1]} ${y + yearOffset}`;
 }
 
 /** Compact label for a range pill. */
-function rangeLabel(from: string, to: string): string {
-  if (from === to) return ymLabel(from);
+function rangeLabel(from: string, to: string, months: readonly string[], yearOffset: number): string {
+  if (from === to) return ymLabel(from, months, yearOffset);
   const [fy, fm] = from.split("-").map(Number);
   const [ty, tm] = to.split("-").map(Number);
-  if (fy === ty) return `${THAI_MONTHS[fm - 1]}–${THAI_MONTHS[tm - 1]} ${ty + 543}`;
-  return `${ymLabel(from)} – ${ymLabel(to)}`;
+  if (fy === ty) return `${months[fm - 1]}–${months[tm - 1]} ${ty + yearOffset}`;
+  return `${ymLabel(from, months, yearOffset)} – ${ymLabel(to, months, yearOffset)}`;
 }
 
 export function PeriodPills({ current, selectedRange }: Props) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -86,7 +83,7 @@ export function PeriodPills({ current, selectedRange }: Props) {
                 active ? "bg-accent text-black" : "bg-[var(--glass-bg)] text-fg-muted hover:text-fg"
               }`}
             >
-              {p.label}
+              {p.id === "month" ? t.analytics.periodThisMonth : p.id === "prevmonth" ? t.analytics.periodPrevMonth : t.analytics.periodThisYear}
             </button>
           );
         })}
@@ -98,7 +95,9 @@ export function PeriodPills({ current, selectedRange }: Props) {
             selectedRange ? "bg-accent text-black" : "bg-[var(--glass-bg)] text-fg-muted hover:text-fg"
           }`}
         >
-          {selectedRange ? rangeLabel(selectedRange.from, selectedRange.to) : "เลือกช่วงเอง"}
+          {selectedRange
+            ? rangeLabel(selectedRange.from, selectedRange.to, t.calendar.months, t.calendar.yearOffset)
+            : t.analytics.customRange}
           <span className="text-[10px]">▾</span>
         </button>
       </div>
@@ -107,36 +106,36 @@ export function PeriodPills({ current, selectedRange }: Props) {
         <div className="mt-2 space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] p-3">
           {/* Start */}
           <div className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-fg-muted">เริ่ม</span>
+            <span className="w-10 shrink-0 text-xs text-fg-muted">{t.analytics.rangeStart}</span>
             <select className={selectClass} value={fromM} onChange={(e) => setFromM(Number(e.target.value))}>
-              {THAI_MONTHS.map((label, i) => (
+              {t.calendar.months.map((label, i) => (
                 <option key={i} value={i + 1}>{label}</option>
               ))}
             </select>
             <select className={selectClass} value={fromY} onChange={(e) => setFromY(Number(e.target.value))}>
               {years.map((y) => (
-                <option key={y} value={y}>{y + 543}</option>
+                <option key={y} value={y}>{y + t.calendar.yearOffset}</option>
               ))}
             </select>
           </div>
 
           {/* End */}
           <div className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-fg-muted">ถึง</span>
+            <span className="w-10 shrink-0 text-xs text-fg-muted">{t.analytics.rangeEnd}</span>
             <select className={selectClass} value={toM} onChange={(e) => setToM(Number(e.target.value))}>
-              {THAI_MONTHS.map((label, i) => (
+              {t.calendar.months.map((label, i) => (
                 <option key={i} value={i + 1}>{label}</option>
               ))}
             </select>
             <select className={selectClass} value={toY} onChange={(e) => setToY(Number(e.target.value))}>
               {years.map((y) => (
-                <option key={y} value={y}>{y + 543}</option>
+                <option key={y} value={y}>{y + t.calendar.yearOffset}</option>
               ))}
             </select>
           </div>
 
           {invalid && (
-            <p className="text-xs text-[var(--negative)]">เดือนเริ่มต้องไม่เกินเดือนสิ้นสุด</p>
+            <p className="text-xs text-[var(--negative)]">{t.analytics.rangeInvalid}</p>
           )}
 
           <button
@@ -145,7 +144,7 @@ export function PeriodPills({ current, selectedRange }: Props) {
             disabled={invalid}
             className="w-full rounded-xl bg-accent py-2 text-xs font-semibold text-black transition-opacity disabled:opacity-40"
           >
-            ดูข้อมูลช่วงนี้
+            {t.analytics.viewRange}
           </button>
         </div>
       )}

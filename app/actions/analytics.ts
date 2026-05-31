@@ -12,6 +12,7 @@ import {
   DEFAULT_SAVINGS_TARGET_PCT,
   type AnalyticsPeriod,
 } from "@/app/actions/analytics-utils";
+import type { Locale } from "@/lib/i18n";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,8 @@ export async function getAnalyticsData(
   userId: string,
   period: AnalyticsPeriod,
   savingsTarget: number = DEFAULT_SAVINGS_TARGET_PCT,
-  range?: { from: string; to: string }
+  range?: { from: string; to: string },
+  locale: Locale = "th"
 ): Promise<AnalyticsData> {
   const supabase = await createClient();
 
@@ -198,8 +200,12 @@ export async function getAnalyticsData(
   const avgPerDay = totalExpense / elapsedDays;
 
   // ── Weekday pattern (avg expense per day-of-week, Mon→Sun) ────────────────
-  const WD_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
-  const WD_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
+  const WD_SHORT = locale === "en"
+    ? ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+    : ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+  const WD_FULL = locale === "en"
+    ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    : ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
   // Monday-first index (0..6) from a YYYY-MM-DD calendar date.
   const mondayIdx = (dateKey: string) => {
     const [y, m, d] = dateKey.split("-").map(Number);
@@ -242,7 +248,7 @@ export async function getAnalyticsData(
       const previous = prevCatSpend[id] ?? 0;
       const delta = current - previous;
       return {
-        name: catSpend[id]?.name ?? "อื่นๆ",
+        name: catSpend[id]?.name ?? (locale === "en" ? "Other" : "อื่นๆ"),
         current,
         previous,
         delta,
@@ -257,18 +263,20 @@ export async function getAnalyticsData(
   const insights: string[] = [];
   const topMover = movers[0];
   if (topMover && topMover.delta > 0) {
-    insights.push(
-      `เดือนนี้ค่า${topMover.name}สูงกว่าช่วงก่อน ฿${Math.round(topMover.delta).toLocaleString("th-TH")}`
-    );
+    insights.push(locale === "en"
+      ? `${topMover.name} spending is ฿${Math.round(topMover.delta).toLocaleString("en-US")} higher than the previous period`
+      : `เดือนนี้ค่า${topMover.name}สูงกว่าช่วงก่อน ฿${Math.round(topMover.delta).toLocaleString("th-TH")}`);
   }
   if (insights.length < 2 && totalExpense > 0) {
     const cut = 150;
-    insights.push(
-      `ถ้าลดค่าใช้จ่ายวันละ ฿${cut} คุณจะออมเพิ่มได้ประมาณ ฿${(cut * 30).toLocaleString("th-TH")} ต่อเดือน`
-    );
+    insights.push(locale === "en"
+      ? `Reducing daily spending by ฿${cut} could save about ฿${(cut * 30).toLocaleString("en-US")} per month`
+      : `ถ้าลดค่าใช้จ่ายวันละ ฿${cut} คุณจะออมเพิ่มได้ประมาณ ฿${(cut * 30).toLocaleString("th-TH")} ต่อเดือน`);
   }
   if (insights.length < 2 && savingRate !== null && savingRate >= savingsTarget) {
-    insights.push(`เยี่ยมมาก! คุณออมได้ ${savingRate}% ถึงเป้าหมายแล้ว 🎉`);
+    insights.push(locale === "en"
+      ? `Great job! You saved ${savingRate}% and reached your goal 🎉`
+      : `เยี่ยมมาก! คุณออมได้ ${savingRate}% ถึงเป้าหมายแล้ว 🎉`);
   }
 
   const hasData = rows.length > 0;

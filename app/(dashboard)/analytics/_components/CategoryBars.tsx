@@ -1,13 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { formatTHB } from "@/lib/format";
 import type { CategoryRow } from "@/app/actions/analytics";
 import { categoryIcon, CATEGORY_BAR_COLORS } from "./category-icon";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   categories: CategoryRow[];
 }
 
 export function CategoryBars({ categories }: Props) {
+  const t = useT();
   if (categories.length === 0) return null;
 
   const top = categories.slice(0, 5);
@@ -16,10 +20,10 @@ export function CategoryBars({ categories }: Props) {
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold">รายจ่ายตามหมวดหมู่</p>
+        <p className="text-sm font-semibold">{t.analytics.expenseByCategory}</p>
         {categories.length > 5 && (
           <Link href="/transactions" className="text-xs text-accent">
-            ดูทั้งหมด
+            {t.analytics.viewAll}
           </Link>
         )}
       </div>

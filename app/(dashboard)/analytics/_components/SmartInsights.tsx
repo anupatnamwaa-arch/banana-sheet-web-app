@@ -1,13 +1,18 @@
+"use client";
+
+import { useT } from "@/lib/i18n/LanguageProvider";
+
 interface Props {
   insights: string[];
 }
 
 export function SmartInsights({ insights }: Props) {
+  const t = useT();
   if (insights.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      <p className="px-1 text-sm font-semibold">ข้อสังเกต</p>
+      <p className="px-1 text-sm font-semibold">{t.analytics.smartInsightsTitle}</p>
       {insights.map((text, i) => (
         <div
           key={i}

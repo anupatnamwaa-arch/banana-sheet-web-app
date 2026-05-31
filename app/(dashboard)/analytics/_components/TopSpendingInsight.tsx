@@ -1,6 +1,10 @@
+"use client";
+
 import { formatTHB } from "@/lib/format";
 import type { CategoryRow } from "@/app/actions/analytics";
 import { categoryIcon } from "./category-icon";
+import { format } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   topCategory: CategoryRow | null;
@@ -12,13 +16,14 @@ function suggestBudget(spent: number): number {
 }
 
 export function TopSpendingInsight({ topCategory }: Props) {
+  const t = useT();
   if (!topCategory || topCategory.spent === 0) return null;
 
   const suggested = suggestBudget(topCategory.spent);
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
-      <p className="mb-2 text-sm font-semibold">หมวดที่ใช้เยอะที่สุด</p>
+      <p className="mb-2 text-sm font-semibold">{t.analytics.topCategoryTitle}</p>
       <div className="flex items-center gap-3">
         <span className="text-2xl">{categoryIcon(topCategory.name)}</span>
         <div>
@@ -29,10 +34,10 @@ export function TopSpendingInsight({ topCategory }: Props) {
         </div>
       </div>
       <p className="mt-2 text-xs text-fg-muted">
-        คิดเป็น {topCategory.pct}% ของรายจ่ายทั้งหมด
+        {format(t.analytics.topCategoryPctTemplate, { pct: topCategory.pct })}
       </p>
       <p className="mt-2 rounded-xl bg-[var(--glass-bg)] px-3 py-2 text-xs text-fg">
-        💡 ลองตั้งงบ{topCategory.name}ไว้ที่ {formatTHB(suggested)} ในเดือนหน้า
+        {format(t.analytics.topCategorySuggestTemplate, { name: topCategory.name, amount: formatTHB(suggested) })}
       </p>
     </div>
   );

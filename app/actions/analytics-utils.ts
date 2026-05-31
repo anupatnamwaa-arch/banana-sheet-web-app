@@ -8,10 +8,10 @@ export type AnalyticsPeriod = "month" | "prevmonth" | "year";
 
 export const DEFAULT_SAVINGS_TARGET_PCT = 20;
 
-export const ANALYTICS_PERIODS: { id: AnalyticsPeriod; label: string }[] = [
-  { id: "month", label: "เดือนนี้" },
-  { id: "prevmonth", label: "เดือนก่อน" },
-  { id: "year", label: "ปีนี้" },
+export const ANALYTICS_PERIODS: { id: AnalyticsPeriod }[] = [
+  { id: "month" },
+  { id: "prevmonth" },
+  { id: "year" },
 ];
 
 const BKK_OFFSET_MS = 7 * 3_600_000;
