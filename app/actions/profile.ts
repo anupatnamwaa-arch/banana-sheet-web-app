@@ -91,3 +91,64 @@ export async function updateSavingsTarget(pct: number): Promise<number> {
   if (error) throw new Error(error.message);
   return clamped;
 }
+
+/**
+ * Set the billing cycle start day (1–28).
+ * Returns the clamped value that was saved.
+ */
+export async function saveBillingCycle(day: number): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const clamped = Math.max(1, Math.min(28, Math.round(day)));
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ cycle_start_day: clamped })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+  return clamped;
+}
+
+/**
+ * Set the emergency fund target in months (1–24).
+ * Returns the clamped value that was saved.
+ */
+export async function saveEmergencyGoal(months: number): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const clamped = Math.max(1, Math.min(24, Math.round(months)));
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ emergency_months: clamped })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+  return clamped;
+}
+
+/**
+ * Set the balance calculation method ('net' | 'gross' | 'budget').
+ */
+export async function saveBalanceMethod(
+  method: "net" | "gross" | "budget"
+): Promise<void> {
+  if (!["net", "gross", "budget"].includes(method)) {
+    throw new Error("Invalid balance method");
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ balance_method: method })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+}
