@@ -17,6 +17,10 @@ import { ShortcutGuide } from "./_components/ShortcutGuide";
 import { ProfileHeader } from "./_components/ProfileHeader";
 import { LanguageSection } from "./_components/LanguageSection";
 import { PlanSection } from "./_components/PlanSection";
+import { WalletSection } from "./_components/WalletSection";
+import { BillingCycleSection }  from "./_components/BillingCycleSection";
+import { EmergencyGoalSection } from "./_components/EmergencyGoalSection";
+import { BalanceMethodSection } from "./_components/BalanceMethodSection";
 import { getDictionary } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
 
@@ -32,7 +36,7 @@ export default async function SettingsPage() {
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("is_active, plan_type, plan_expires_at, api_key, savings_target_pct, display_name, avatar_url")
+    .select("is_active, plan_type, plan_expires_at, api_key, savings_target_pct, display_name, avatar_url, cycle_start_day, emergency_months, balance_method")
     .eq("id", userId)
     .single();
 
@@ -42,6 +46,9 @@ export default async function SettingsPage() {
   > | null;
 
   const savingsTarget = profile?.savings_target_pct ?? 20;
+  const cycleStartDay   = (profile as { cycle_start_day?: number   } | null)?.cycle_start_day   ?? 1;
+  const emergencyMonths = (profile as { emergency_months?: number   } | null)?.emergency_months  ?? 6;
+  const balanceMethod   = ((profile as { balance_method?: string    } | null)?.balance_method    ?? "net") as "net" | "gross" | "budget";
   const apiKey = profile?.api_key ?? null;
   const isPro = profile ? isActive(profile) : false;
   const planLabel = isPro ? "Banana Sheet Pro" : t.settings.freePlan;
@@ -94,7 +101,8 @@ export default async function SettingsPage() {
 
       {/* ── 2. การเงิน ───────────────────────────────────────────────────── */}
       <SettingsSection title={t.settings.sectionFinance}>
-        <SettingsRow icon="📅" label={t.settings.billingCycle} value={t.settings.billingCycleValue} comingSoon comingSoonLabel={cs} />
+        <BillingCycleSection initialDay={cycleStartDay} />
+
         <SettingsRow
           icon="💰"
           label={t.settings.monthlyBudget}
@@ -102,23 +110,16 @@ export default async function SettingsPage() {
           href="#category-budgets"
         />
 
+        <div className="px-1">
+          <EmergencyGoalSection initialMonths={emergencyMonths} />
+        </div>
+
         {/* Savings target — functional */}
         <div className="px-1">
           <SavingsTargetSection initialTarget={savingsTarget} />
         </div>
 
-        <SettingsRow
-          icon="🛡️"
-          label={t.settings.emergencyGoal}
-          sublabel={t.settings.emergencyGoalSub}
-          value={t.settings.emergencyGoalValue}
-        />
-        <SettingsRow
-          icon="⚖️"
-          label={t.settings.balanceMethod}
-          sublabel={t.settings.balanceMethodSub}
-          value={t.settings.balanceMethodValue}
-        />
+        <BalanceMethodSection initialMethod={balanceMethod} />
       </SettingsSection>
 
       {/* ── 3. หมวดหมู่และงบ ──────────────────────────────────────────────── */}
@@ -128,7 +129,7 @@ export default async function SettingsPage() {
         </p>
         <BudgetList userId={userId} isPro={isPro} />
         <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
-          <SettingsRow icon="👛" label={t.settings.wallets} comingSoon comingSoonLabel={cs} />
+          <WalletSection userId={userId} />
         </div>
       </div>
 
