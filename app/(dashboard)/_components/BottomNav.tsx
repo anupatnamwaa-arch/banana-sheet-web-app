@@ -5,19 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House, ChartLine, Plus, CreditCard, Wallet } from "lucide-react";
 import { UniversalFabDrawer } from "./UniversalFabDrawer";
-
-const LEFT_TABS = [
-  { href: "/overview", label: "หน้าแรก", Icon: House },
-  { href: "/analytics", label: "วิเคราะห์", Icon: ChartLine },
-];
-
-const RIGHT_TABS = [
-  { href: "/transactions", label: "รายการ", Icon: CreditCard },
-  { href: "/wealth", label: "ความมั่งคั่ง", Icon: Wallet },
-];
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const t = useT();
+  const leftTabs = [
+    { href: "/overview", label: t.nav.home, Icon: House },
+    { href: "/analytics", label: t.nav.analytics, Icon: ChartLine },
+  ];
+  const rightTabs = [
+    { href: "/transactions", label: t.nav.transactions, Icon: CreditCard },
+    { href: "/wealth", label: t.nav.wealth, Icon: Wallet },
+  ];
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [categoriesFetched, setCategoriesFetched] = useState(false);
@@ -41,7 +41,7 @@ export function BottomNav() {
         <div className="relative mx-auto flex max-w-md items-end">
           {/* Nav bar */}
           <div className="glass flex w-full items-center justify-around p-2">
-            {LEFT_TABS.map(({ href, label, Icon }) => {
+            {leftTabs.map(({ href, label, Icon }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link
@@ -60,7 +60,7 @@ export function BottomNav() {
             {/* FAB spacer */}
             <div className="w-[52px] flex-shrink-0" aria-hidden />
 
-            {RIGHT_TABS.map(({ href, label, Icon }) => {
+            {rightTabs.map(({ href, label, Icon }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link
@@ -80,7 +80,7 @@ export function BottomNav() {
           {/* Notched FAB — protrudes 20px above nav */}
           <button
             onClick={handleFabClick}
-            aria-label="เพิ่มรายการ"
+            aria-label={t.nav.addEntry}
             style={{ bottom: "calc(100% - 20px)" }}
             className="absolute left-1/2 -translate-x-1/2 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-accent text-black shadow-[0_6px_24px_rgba(250,204,21,0.45)] transition-transform active:scale-95"
           >

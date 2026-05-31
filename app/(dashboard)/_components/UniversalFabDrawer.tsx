@@ -8,6 +8,7 @@ import { addTransaction } from "@/app/actions/transactions";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import type { TransactionType } from "@/lib/types";
 import type { TransactionPayload } from "@/app/actions/transactions";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   categories: Array<{ id: string; name: string }>;
@@ -24,6 +25,7 @@ const inputClass =
   "w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm outline-none placeholder:text-fg-muted";
 
 export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
+  const t = useT();
   const [txType, setTxType] = useState<TransactionType>("expense"); // expense by default
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -34,7 +36,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const num = parseFloat(amount);
-    if (!num || num <= 0) { setError("กรุณากรอกจำนวนเงินที่ถูกต้อง"); return; }
+    if (!num || num <= 0) { setError(t.fab.errorAmount); return; }
     setLoading(true); setError(null);
     const payload: TransactionPayload = {
       amount: num,
@@ -47,7 +49,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
       await addTransaction(payload);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+      setError(err instanceof Error ? err.message : t.common.error);
       setLoading(false);
     }
   }
@@ -73,8 +75,8 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
 
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">เพิ่มรายการ</h2>
-          <button onClick={onClose} aria-label="ปิด">
+          <h2 className="text-lg font-semibold">{t.fab.title}</h2>
+          <button onClick={onClose} aria-label={t.common.close}>
             <X size={20} className="text-fg-muted" />
           </button>
         </div>
@@ -82,21 +84,21 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Type pills — expense default */}
           <div className="flex gap-2">
-            {(["expense", "income", "savings"] as TransactionType[]).map((t) => (
+            {(["expense", "income", "savings"] as TransactionType[]).map((type) => (
               <button
-                key={t}
+                key={type}
                 type="button"
                 onClick={() => {
-                  setTxType(t);
-                  if (t === "savings") setCategoryId("");
+                  setTxType(type);
+                  if (type === "savings") setCategoryId("");
                 }}
                 className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
-                  txType === t
+                  txType === type
                     ? "bg-accent text-black"
                     : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
               >
-                {t === "expense" ? "รายจ่าย" : t === "income" ? "รายรับ" : "ออมเงิน"}
+                {type === "expense" ? t.fab.typeExpense : type === "income" ? t.fab.typeIncome : t.fab.typeSavings}
               </button>
             ))}
           </div>
@@ -107,7 +109,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
             inputMode="decimal"
             min="0"
             step="any"
-            placeholder="จำนวนเงิน (฿)"
+            placeholder={t.fab.amountPlaceholder}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className={inputClass}
@@ -121,7 +123,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
               onChange={(e) => setCategoryId(e.target.value)}
               className={inputClass}
             >
-              <option value="">— หมวดหมู่ (ไม่บังคับ) —</option>
+              <option value="">{t.fab.categoryOptional}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -131,7 +133,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
           {/* Note */}
           <input
             type="text"
-            placeholder="หมายเหตุ (ไม่บังคับ)"
+            placeholder={t.fab.notePlaceholder}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className={inputClass}
@@ -144,7 +146,7 @@ export function UniversalFabDrawer({ categories, onClose, onSuccess }: Props) {
             disabled={loading}
             className="w-full rounded-2xl bg-accent py-3 font-semibold text-black disabled:opacity-40"
           >
-            {loading ? "กำลังบันทึก..." : "บันทึก"}
+            {loading ? t.fab.submitting : t.fab.submit}
           </button>
         </form>
       </motion.div>
