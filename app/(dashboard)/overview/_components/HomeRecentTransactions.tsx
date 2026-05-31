@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { RecentTransaction } from "@/app/actions/home";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   transactions: RecentTransaction[];
@@ -11,25 +14,20 @@ const TYPE_ICONS: Record<string, string> = {
   savings: "🏦",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  income: "รายรับ",
-  expense: "รายจ่าย",
-  savings: "เงินออม",
-};
-
-function fmtDate(iso: string): string {
+function fmtDate(iso: string, locale: "th" | "en", today: string): string {
   const d = new Date(iso);
   const now = new Date();
-  const todayStr = now.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" });
-  const txStr = d.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" });
+  const intlLocale = locale === "en" ? "en-US" : "th-TH";
+  const todayStr = now.toLocaleDateString(intlLocale, { timeZone: "Asia/Bangkok" });
+  const txStr = d.toLocaleDateString(intlLocale, { timeZone: "Asia/Bangkok" });
   if (todayStr === txStr) {
-    return `วันนี้ ${d.toLocaleTimeString("th-TH", {
+    return `${today} ${d.toLocaleTimeString(intlLocale, {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "Asia/Bangkok",
     })}`;
   }
-  return d.toLocaleDateString("th-TH", {
+  return d.toLocaleDateString(intlLocale, {
     day: "numeric",
     month: "short",
     timeZone: "Asia/Bangkok",
@@ -37,14 +35,16 @@ function fmtDate(iso: string): string {
 }
 
 export function HomeRecentTransactions({ transactions }: Props) {
+  const dict = useT();
+  const locale = useLocale();
   if (transactions.length === 0) return null;
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold">รายการล่าสุด</p>
+        <p className="text-sm font-semibold">{dict.overview.recentTransactions}</p>
         <Link href="/transactions" className="text-xs text-accent">
-          ดูทั้งหมด
+          {dict.overview.viewAll}
         </Link>
       </div>
 
@@ -58,7 +58,8 @@ export function HomeRecentTransactions({ transactions }: Props) {
               ? "text-blue-400"
               : "text-negative";
           const sign = isIncome || isSavings ? "+" : "-";
-          const subLabel = t.category ?? TYPE_LABELS[t.type] ?? "";
+          const typeLabel = t.type === "income" ? dict.overview.typeIncome : t.type === "expense" ? dict.overview.typeExpense : dict.overview.typeSavings;
+          const subLabel = t.category ?? typeLabel;
 
           return (
             <div key={t.id} className="flex items-center gap-3">
@@ -67,11 +68,11 @@ export function HomeRecentTransactions({ transactions }: Props) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">
-                  {t.note ?? t.category ?? TYPE_LABELS[t.type]}
+                  {t.note ?? t.category ?? typeLabel}
                 </p>
                 <p className="text-xs text-fg-muted">
                   {subLabel ? `${subLabel} • ` : ""}
-                  {fmtDate(t.date)}
+                  {fmtDate(t.date, locale, dict.overview.dateToday)}
                 </p>
               </div>
               <p className={`shrink-0 text-sm font-semibold tabular-nums ${amtColor}`}>

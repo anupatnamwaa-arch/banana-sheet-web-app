@@ -1,3 +1,7 @@
+"use client";
+
+import { useT } from "@/lib/i18n/LanguageProvider";
+
 interface Props {
   remaining: number;
   daysRemaining: number;
@@ -9,17 +13,19 @@ function fmt(n: number) {
 
 function statusText(
   remaining: number,
-  daysRemaining: number
+  daysRemaining: number,
+  t: ReturnType<typeof useT>,
 ): { text: string; color: string } {
-  if (remaining < 0) return { text: "เกินแผนแล้ว ควรระวัง ⚠️", color: "text-negative" };
-  if (remaining === 0) return { text: "ใช้ครบแผนพอดี", color: "text-amber-400" };
-  if (daysRemaining === 0) return { text: "สิ้นเดือนแล้ว ทำได้ดี 🎉", color: "text-positive" };
-  return { text: "ยังอยู่ในแผน ใช้จ่ายได้สบาย ๆ", color: "text-positive" };
+  if (remaining < 0) return { text: t.overview.statusOverBudget, color: "text-negative" };
+  if (remaining === 0) return { text: t.overview.statusExact, color: "text-amber-400" };
+  if (daysRemaining === 0) return { text: t.overview.statusEndOfMonth, color: "text-positive" };
+  return { text: t.overview.statusOnTrack, color: "text-positive" };
 }
 
 export function HomeBalanceCard({ remaining, daysRemaining }: Props) {
   const dailyAvg = daysRemaining > 0 ? Math.floor(remaining / daysRemaining) : 0;
-  const { text, color } = statusText(remaining, daysRemaining);
+  const t = useT();
+  const { text, color } = statusText(remaining, daysRemaining, t);
   const isNegative = remaining < 0;
 
   return (
@@ -30,7 +36,7 @@ export function HomeBalanceCard({ remaining, daysRemaining }: Props) {
         style={{ background: "linear-gradient(90deg,var(--accent),transparent)" }}
       />
 
-      <p className="text-xs text-fg-muted">เงินคงเหลือใช้เดือนนี้</p>
+      <p className="text-xs text-fg-muted">{t.overview.balanceTitle}</p>
       <p
         className={`mt-1 text-4xl font-bold tracking-tight tabular-nums ${
           isNegative ? "text-negative" : "text-fg"
@@ -41,7 +47,7 @@ export function HomeBalanceCard({ remaining, daysRemaining }: Props) {
       </p>
 
       {daysRemaining > 0 && dailyAvg > 0 && (
-        <p className="mt-1 text-xs text-fg-muted">เฉลี่ยใช้ได้วันละ {fmt(dailyAvg)}</p>
+        <p className="mt-1 text-xs text-fg-muted">{t.overview.balanceDailyAvg} {fmt(dailyAvg)}</p>
       )}
 
       <p className={`mt-2 text-xs font-medium ${color}`}>{text}</p>

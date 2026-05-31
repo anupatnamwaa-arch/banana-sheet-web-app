@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { bangkokToday } from "./overview-utils";
+import { getDictionary, format, type Locale } from "@/lib/i18n";
 
 export interface RecentTransaction {
   id: string;
@@ -38,14 +39,12 @@ export interface HomeData {
   monthLabel: string;
 }
 
-const MONTH_NAMES_SHORT = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
-
 const THB = (n: number) => `฿${Math.round(n).toLocaleString("th-TH")}`;
 
-export async function getHomeData(userId: string): Promise<HomeData> {
+export async function getHomeData(userId: string, locale: Locale = "th"): Promise<HomeData> {
+  const t = getDictionary(locale);
+  const MONTH_NAMES_SHORT = t.calendar.months;
+  const yearOffset = t.calendar.yearOffset;
   const supabase = await createClient();
   const { year, month, day, daysInMonth } = bangkokToday();
   const bkkOffsetMs = 7 * 3_600_000;
@@ -141,14 +140,29 @@ export async function getHomeData(userId: string): Promise<HomeData> {
   let insight: string | null = null;
   if (totalIncome > 0 && totalSavings > 0) {
     const rate = Math.round((totalSavings / totalIncome) * 100);
-    insight = `เดือนนี้คุณออมได้ ${rate}% ของรายรับแล้ว 🎉`;
+    insight = format(
+      locale === "en"
+        ? "Saved {rate}% of income this month 🎉"
+        : "เดือนนี้คุณออมได้ {rate}% ของรายรับแล้ว 🎉",
+      { rate }
+    );
   } else if (budgetTotal > 0 && totalExpense > 0) {
     const pct = Math.round((totalExpense / budgetTotal) * 100);
     if (pct > 90) {
-      insight = `ใช้งบไปแล้ว ${pct}% ระวังนิดนึงนะ ⚠️`;
+      insight = format(
+        locale === "en"
+          ? "Used {pct}% of budget — watch out ⚠️"
+          : "ใช้งบไปแล้ว {pct}% ระวังนิดนึงนะ ⚠️",
+        { pct }
+      );
     } else if (daysRemaining > 0) {
       const dailyBudget = Math.max(0, Math.round((budgetTotal - totalExpense) / daysRemaining));
-      insight = `ใช้ได้อีกวันละประมาณ ${THB(dailyBudget)} จนถึงสิ้นเดือน`;
+      insight = format(
+        locale === "en"
+          ? "Daily budget remaining: {amount}"
+          : "ใช้ได้อีกวันละประมาณ {amount} จนถึงสิ้นเดือน",
+        { amount: THB(dailyBudget) }
+      );
     }
   }
 
@@ -168,6 +182,6 @@ export async function getHomeData(userId: string): Promise<HomeData> {
     daysRemaining,
     recentTransactions,
     insight,
-    monthLabel: `${MONTH_NAMES_SHORT[month - 1]} ${year + 543}`,
+    monthLabel: `${MONTH_NAMES_SHORT[month - 1]} ${year + yearOffset}`,
   };
 }

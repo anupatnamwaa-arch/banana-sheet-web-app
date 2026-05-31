@@ -7,6 +7,7 @@ import { HomeBudgetProgress } from "./_components/HomeBudgetProgress";
 import { HomeTodayCard } from "./_components/HomeTodayCard";
 import { HomeRecentTransactions } from "./_components/HomeRecentTransactions";
 import { HomeInsightCard } from "./_components/HomeInsightCard";
+import { getLocale } from "@/lib/i18n/locale";
 
 export default async function OverviewPage() {
   const supabase = await createClient();
@@ -29,7 +30,8 @@ export default async function OverviewPage() {
     user?.email?.split("@")[0] ||
     "Demo";
 
-  const home = await getHomeData(userId);
+  const locale = await getLocale();
+  const home = await getHomeData(userId, locale);
 
   return (
     <section className="space-y-3 pb-4">

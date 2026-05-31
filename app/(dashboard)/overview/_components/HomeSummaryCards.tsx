@@ -1,3 +1,7 @@
+"use client";
+
+import { useT } from "@/lib/i18n/LanguageProvider";
+
 interface Props {
   totalIncome: number;
   totalExpense: number;
@@ -15,12 +19,13 @@ export function HomeSummaryCards({
   totalSavings,
   savingRate,
 }: Props) {
+  const t = useT();
   const cards = [
-    { label: "รายรับ", value: fmt(totalIncome), icon: "↑", bg: "bg-positive/10", text: "text-positive" },
-    { label: "รายจ่าย", value: fmt(totalExpense), icon: "↓", bg: "bg-negative/10", text: "text-negative" },
-    { label: "เงินออม", value: fmt(totalSavings), icon: "🏦", bg: "bg-blue-500/10", text: "text-blue-400" },
+    { label: t.overview.income, value: fmt(totalIncome), icon: "↑", bg: "bg-positive/10", text: "text-positive" },
+    { label: t.overview.expense, value: fmt(totalExpense), icon: "↓", bg: "bg-negative/10", text: "text-negative" },
+    { label: t.overview.savingsAmount, value: fmt(totalSavings), icon: "🏦", bg: "bg-blue-500/10", text: "text-blue-400" },
     {
-      label: "อัตราออม",
+      label: t.overview.savingRate,
       value: savingRate !== null ? `${savingRate}%` : "—",
       icon: "🎯",
       bg: "bg-purple-500/10",
