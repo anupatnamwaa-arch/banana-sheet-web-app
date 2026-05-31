@@ -3,7 +3,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { bangkokToday } from "@/app/actions/overview-utils";
-import { recordNetWorthSnapshot } from "@/app/actions/wealth";
+import { recordNetWorthSnapshot, recordItemSnapshots } from "@/app/actions/wealth";
 import type { Goal } from "@/lib/types";
 
 export interface AssetRow {
@@ -24,6 +24,16 @@ export interface DebtRow {
 export interface TrendPoint {
   month: string; // YYYY-MM
   netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+}
+
+export interface ItemSnapshot {
+  month: string;
+  itemId: string;
+  name: string;
+  type: "asset" | "liability";
+  value: number;
 }
 
 export interface WealthData {
@@ -34,10 +44,11 @@ export interface WealthData {
   totalLiabilities: number;
   netWorth: number;
   prevNetWorth: number | null;
-  emergencyFund: number; // sum of liquid assets
-  monthlyExpense: number; // avg over trailing 90 days
+  emergencyFund: number;
+  monthlyExpense: number;
   goals: Goal[];
   trend: TrendPoint[];
+  itemSnapshots: ItemSnapshot[];
   updatedAt: string | null;
 }
 
@@ -50,10 +61,9 @@ export async function getWealthData(userId: string): Promise<WealthData> {
   const prevDate = new Date(Date.UTC(year, month - 2, 1));
   const prevMonthKey = `${prevDate.getUTCFullYear()}-${pad(prevDate.getUTCMonth() + 1)}`;
 
-  // Trailing 90 days for the emergency-fund coverage estimate.
   const ninetyAgo = new Date(Date.now() - 90 * 86_400_000).toISOString();
 
-  const [wealthRes, goalsRes, snapsRes, expenseRes] = await Promise.all([
+  const [wealthRes, goalsRes, snapsRes, itemSnapsRes, expenseRes] = await Promise.all([
     supabase
       .from("wealth_debt")
       .select("id, name, type, value, is_liquid, monthly_payment, due_date, updated_at")
@@ -66,7 +76,12 @@ export async function getWealthData(userId: string): Promise<WealthData> {
       .order("created_at", { ascending: true }),
     supabase
       .from("net_worth_snapshots")
-      .select("month, net_worth")
+      .select("month, net_worth, total_assets, total_liabilities")
+      .eq("user_id", userId)
+      .order("month", { ascending: true }),
+    supabase
+      .from("wealth_item_snapshots")
+      .select("month, item_id, name, type, value")
       .eq("user_id", userId)
       .order("month", { ascending: true }),
     supabase
@@ -114,28 +129,76 @@ export async function getWealthData(userId: string): Promise<WealthData> {
   }
 
   const netWorth = totalAssets - totalLiabilities;
-
-  // Monthly expense estimate (avg of trailing 90 days).
   const expenseSum = (expenseRes.data ?? []).reduce((s, r) => s + r.amount, 0);
   const monthlyExpense = expenseSum / 3;
 
-  // Snapshot history + record current month.
-  const snaps = (snapsRes.data ?? []) as Array<{ month: string; net_worth: number }>;
+  const snaps = (snapsRes.data ?? []) as Array<{
+    month: string;
+    net_worth: number;
+    total_assets: number;
+    total_liabilities: number;
+  }>;
   const prevSnap = snaps.find((s) => s.month === prevMonthKey);
   const prevNetWorth = prevSnap ? prevSnap.net_worth : null;
 
   const hasData = rows.length > 0 || (goalsRes.data?.length ?? 0) > 0;
+
   if (rows.length > 0) {
-    await recordNetWorthSnapshot(monthKey, netWorth, totalAssets, totalLiabilities);
+    await Promise.all([
+      recordNetWorthSnapshot(monthKey, netWorth, totalAssets, totalLiabilities),
+      recordItemSnapshots(
+        rows.map((r) => ({ id: r.id, name: r.name, type: r.type, value: r.value })),
+        monthKey
+      ),
+    ]);
   }
 
-  // Build trend: past snapshots with the current month merged in.
-  const trendMap = new Map<string, number>();
-  for (const s of snaps) trendMap.set(s.month, s.net_worth);
-  if (rows.length > 0) trendMap.set(monthKey, netWorth);
+  // Build aggregate trend (merge recorded history with current live values).
+  const trendMap = new Map<string, { netWorth: number; totalAssets: number; totalLiabilities: number }>();
+  for (const s of snaps) {
+    trendMap.set(s.month, {
+      netWorth: s.net_worth,
+      totalAssets: s.total_assets,
+      totalLiabilities: s.total_liabilities,
+    });
+  }
+  if (rows.length > 0) {
+    trendMap.set(monthKey, { netWorth, totalAssets, totalLiabilities });
+  }
   const trend: TrendPoint[] = [...trendMap.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([m, nw]) => ({ month: m, netWorth: nw }));
+    .map(([m, v]) => ({ month: m, ...v }));
+
+  // Build item snapshots list (merge recorded history with current live values).
+  const itemSnapsMap = new Map<string, ItemSnapshot>(); // key = month+itemId
+  for (const s of (itemSnapsRes.data ?? []) as Array<{
+    month: string;
+    item_id: string;
+    name: string;
+    type: string;
+    value: number;
+  }>) {
+    itemSnapsMap.set(`${s.month}|${s.item_id}`, {
+      month: s.month,
+      itemId: s.item_id,
+      name: s.name,
+      type: s.type as "asset" | "liability",
+      value: s.value,
+    });
+  }
+  // Overlay current month live values (so chart is always fresh).
+  for (const r of rows) {
+    itemSnapsMap.set(`${monthKey}|${r.id}`, {
+      month: monthKey,
+      itemId: r.id,
+      name: r.name,
+      type: r.type as "asset" | "liability",
+      value: r.value,
+    });
+  }
+  const itemSnapshots: ItemSnapshot[] = [...itemSnapsMap.values()].sort((a, b) =>
+    a.month.localeCompare(b.month)
+  );
 
   return {
     hasData,
@@ -149,6 +212,7 @@ export async function getWealthData(userId: string): Promise<WealthData> {
     monthlyExpense,
     goals: (goalsRes.data ?? []) as Goal[],
     trend,
+    itemSnapshots,
     updatedAt,
   };
 }

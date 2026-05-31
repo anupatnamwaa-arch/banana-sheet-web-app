@@ -7,7 +7,8 @@ import type { WealthData, AssetRow, DebtRow } from "@/app/actions/wealth-data";
 import type { Goal } from "@/lib/types";
 import { WealthFormDrawer, type WealthRow } from "./WealthFormDrawer";
 import { GoalFormDrawer } from "./GoalFormDrawer";
-import { NetWorthTrend } from "./NetWorthTrend";
+import { WealthTrendChart } from "./WealthTrendChart";
+import { AssetGrowthChart } from "./AssetGrowthChart";
 
 const THAI_MONTHS = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
@@ -71,7 +72,7 @@ export function WealthView({ data }: { data: WealthData }) {
 
   const {
     hasData, assets, liabilities, totalAssets, totalLiabilities, netWorth,
-    prevNetWorth, emergencyFund, monthlyExpense, goals, trend, updatedAt,
+    prevNetWorth, emergencyFund, monthlyExpense, goals, trend, itemSnapshots, updatedAt,
   } = data;
 
   const nwChange = prevNetWorth !== null ? netWorth - prevNetWorth : null;
@@ -352,7 +353,9 @@ export function WealthView({ data }: { data: WealthData }) {
           </Card>
 
           {/* Net worth trend */}
-          <NetWorthTrend trend={trend} />
+          <WealthTrendChart trend={trend} />
+
+          <AssetGrowthChart snapshots={itemSnapshots} />
 
           {/* Insights */}
           {insights.length > 0 && (

@@ -74,6 +74,30 @@ export async function recordNetWorthSnapshot(
   );
 }
 
+/** Upsert per-item value snapshot for the current Bangkok month. */
+export async function recordItemSnapshots(
+  items: Array<{ id: string; name: string; type: string; value: number }>,
+  month: string
+): Promise<void> {
+  if (items.length === 0) return;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("wealth_item_snapshots").upsert(
+    items.map((item) => ({
+      user_id: user.id,
+      item_id: item.id,
+      month,
+      name: item.name,
+      type: item.type,
+      value: item.value,
+      updated_at: new Date().toISOString(),
+    })),
+    { onConflict: "user_id,item_id,month" }
+  );
+}
+
 export async function deleteWealth(id: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
