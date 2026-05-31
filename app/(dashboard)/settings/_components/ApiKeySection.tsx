@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Copy, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import { regenerateApiKey } from "@/app/actions/profile";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   initialKey: string | null;
@@ -16,6 +17,8 @@ function maskKey(key: string): string {
 }
 
 export function ApiKeySection({ initialKey }: Props) {
+  const locale = useLocale();
+  const t = useT();
   const [key, setKey] = useState<string | null>(initialKey);
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -44,7 +47,7 @@ export function ApiKeySection({ initialKey }: Props) {
       setJustRegenerated(true);
       setTimeout(() => setJustRegenerated(false), 1500);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "สร้างใหม่ไม่สำเร็จ");
+      setError(e instanceof Error ? e.message : t.common.error);
     } finally {
       setRegenerating(false);
     }
@@ -55,7 +58,7 @@ export function ApiKeySection({ initialKey }: Props) {
 
   return (
     <div className="glass p-5 space-y-3">
-      <p className="text-sm font-medium text-fg-muted">API Key (สำหรับ Shortcut)</p>
+      <p className="text-sm font-medium text-fg-muted">{t.settings.apiKeyTitle}</p>
 
       {/* Key display */}
       <div className="flex items-center gap-2">
@@ -67,7 +70,7 @@ export function ApiKeySection({ initialKey }: Props) {
           <button
             onClick={handleCopy}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] transition-colors"
-            title="คัดลอก Key"
+            title={t.settings.apiKeyCopy}
           >
             {copied ? (
               <Check size={16} className="text-[var(--positive)]" />
@@ -79,11 +82,11 @@ export function ApiKeySection({ initialKey }: Props) {
       </div>
 
       {copied && (
-        <p className="text-xs text-[var(--positive)]">✓ คัดลอกแล้ว</p>
+        <p className="text-xs text-[var(--positive)]">✓ {t.settings.apiKeyCopied}</p>
       )}
 
       {justRegenerated && (
-        <p className="text-xs text-[var(--positive)]">✓ สร้างใหม่แล้ว</p>
+        <p className="text-xs text-[var(--positive)]">✓ {t.settings.apiKeyCopied}</p>
       )}
 
       {error && (
@@ -100,12 +103,14 @@ export function ApiKeySection({ initialKey }: Props) {
         className="flex items-center gap-2 rounded-xl border border-[var(--glass-border)] px-3 py-2 text-xs font-medium text-fg-muted transition-opacity disabled:opacity-50"
       >
         <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} />
-        {regenerating ? "กำลังสร้าง…" : "สร้าง Key ใหม่"}
+        {regenerating ? t.settings.apiKeyGenerating : t.settings.apiKeyGenerate}
       </button>
 
       {/* Warning */}
       <p className="text-xs text-fg-muted">
-        ⚠ ห้ามแชร์ Key นี้ — ใครมี Key สามารถเพิ่มรายการได้
+        {locale === "en"
+          ? "⚠ Do not share this key. Anyone with it can add entries."
+          : "⚠ ห้ามแชร์ Key นี้ — ใครมี Key สามารถเพิ่มรายการได้"}
       </p>
     </div>
   );

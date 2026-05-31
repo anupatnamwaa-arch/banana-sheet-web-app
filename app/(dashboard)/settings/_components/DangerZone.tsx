@@ -6,8 +6,10 @@ import { SettingsSection } from "./SettingsSection";
 import { SettingsRow } from "./SettingsRow";
 import { deleteAllUserData } from "@/app/actions/profile";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 export function DangerZone() {
+  const t = useT();
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,18 +23,18 @@ export function DangerZone() {
       setConfirm(false);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.settings.clearError);
       setDeleting(false);
     }
   }
 
   return (
     <>
-      <SettingsSection title="โซนอันตราย">
+      <SettingsSection title={t.settings.sectionDanger}>
         <SettingsRow
           icon="🗑️"
-          label="ล้างข้อมูลทั้งหมด"
-          sublabel="ลบรายการ สินทรัพย์ หนี้สิน และเป้าหมายทั้งหมด"
+          label={t.settings.clearAllData}
+          sublabel={t.settings.clearAllDataSub}
           danger
           onClick={() => setConfirm(true)}
         />
@@ -53,10 +55,9 @@ export function DangerZone() {
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <p className="text-3xl">⚠️</p>
-              <p className="mt-3 text-base font-semibold">ล้างข้อมูลทั้งหมด?</p>
+              <p className="mt-3 text-base font-semibold">{t.settings.clearConfirmTitle}</p>
               <p className="mt-1 text-sm text-fg-muted">
-                รายการ สินทรัพย์ หนี้สิน เป้าหมาย และประวัติทั้งหมดจะถูกลบถาวร
-                ไม่สามารถกู้คืนได้
+                {t.settings.clearConfirmDesc}
               </p>
               {error && <p className="mt-2 text-xs text-negative">{error}</p>}
               <div className="mt-5 flex gap-3">
@@ -65,14 +66,14 @@ export function DangerZone() {
                   disabled={deleting}
                   className="flex-1 rounded-2xl border border-[var(--glass-border)] py-2.5 text-sm font-medium text-fg-muted disabled:opacity-50"
                 >
-                  ยกเลิก
+                  {t.settings.clearCancel}
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
                   className="flex-1 rounded-2xl bg-negative py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {deleting ? "กำลังลบ…" : "ลบทั้งหมด"}
+                  {deleting ? t.settings.clearDeleting : t.settings.clearConfirmBtn}
                 </button>
               </div>
             </motion.div>

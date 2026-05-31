@@ -1,13 +1,17 @@
-// app/(dashboard)/settings/_components/ShortcutGuide.tsx
+"use client";
+
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 export function ShortcutGuide() {
+  const locale = useLocale();
+  const t = useT();
   return (
     <details className="glass group">
       <summary className="cursor-pointer list-none p-5">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium">📱 วิธีตั้งค่า iOS Shortcut</p>
-          <span className="text-xs text-fg-muted group-open:hidden">แสดง ▾</span>
-          <span className="hidden text-xs text-fg-muted group-open:inline">ซ่อน ▴</span>
+          <p className="text-sm font-medium">📱 {t.settings.shortcutGuide}</p>
+          <span className="text-xs text-fg-muted group-open:hidden">{locale === "en" ? "Show ▾" : "แสดง ▾"}</span>
+          <span className="hidden text-xs text-fg-muted group-open:inline">{locale === "en" ? "Hide ▴" : "ซ่อน ▴"}</span>
         </div>
       </summary>
 
@@ -15,16 +19,16 @@ export function ShortcutGuide() {
         <ol className="space-y-3 text-sm">
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-black">1</span>
-            <span>เปิดแอป <strong>Shortcuts</strong> บน iPhone → กด <strong>+</strong> สร้าง Shortcut ใหม่</span>
+            <span>{locale === "en" ? "Open " : "เปิดแอป "}<strong>Shortcuts</strong>{locale === "en" ? " on iPhone, tap +, then create a new shortcut." : " บน iPhone → กด + สร้าง Shortcut ใหม่"}</span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-black">2</span>
-            <span>เพิ่ม action <strong>"Ask for Input"</strong> → ตั้งชื่อว่า <em>"จำนวนเงิน"</em> (Type: Number)</span>
+            <span>{locale === "en" ? "Add the " : "เพิ่ม action "}<strong>&ldquo;Ask for Input&rdquo;</strong>{locale === "en" ? " action and name it " : " → ตั้งชื่อว่า "}<em>&ldquo;{locale === "en" ? "Amount" : "จำนวนเงิน"}&rdquo;</em> (Type: Number)</span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-black">3</span>
             <div className="space-y-2">
-              <p>เพิ่ม action <strong>"Get Contents of URL"</strong> → ตั้งค่าดังนี้:</p>
+              <p>{locale === "en" ? "Add the " : "เพิ่ม action "}<strong>&ldquo;Get Contents of URL&rdquo;</strong>{locale === "en" ? " action with these settings:" : " → ตั้งค่าดังนี้:"}</p>
               <div className="rounded-xl bg-[var(--bg-elevated)] p-3 font-mono text-xs space-y-1">
                 <p><span className="text-fg-muted">URL:</span> https://YOUR_DOMAIN/api/transactions</p>
                 <p><span className="text-fg-muted">Method:</span> POST</p>
@@ -41,13 +45,13 @@ export function ShortcutGuide() {
           </li>
           <li className="flex gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-black">4</span>
-            <span>กด <strong>Add to Home Screen</strong> เพื่อเพิ่มไอคอนลงหน้าจอหลัก</span>
+            <span>{locale === "en" ? "Tap " : "กด "}<strong>Add to Home Screen</strong>{locale === "en" ? " to add an icon to your home screen." : " เพื่อเพิ่มไอคอนลงหน้าจอหลัก"}</span>
           </li>
         </ol>
 
         <p className="text-xs text-fg-muted">
-          แทนที่ <code className="rounded bg-[var(--bg-elevated)] px-1">YOUR_DOMAIN</code> ด้วยโดเมนของคุณ
-          และ <code className="rounded bg-[var(--bg-elevated)] px-1">YOUR_API_KEY</code> ด้วย Key ด้านบน
+          {locale === "en" ? "Replace " : "แทนที่ "}<code className="rounded bg-[var(--bg-elevated)] px-1">YOUR_DOMAIN</code>{locale === "en" ? " with your domain and " : " ด้วยโดเมนของคุณ และ "}
+          <code className="rounded bg-[var(--bg-elevated)] px-1">YOUR_API_KEY</code>{locale === "en" ? " with the key above." : " ด้วย Key ด้านบน"}
         </p>
       </div>
     </details>

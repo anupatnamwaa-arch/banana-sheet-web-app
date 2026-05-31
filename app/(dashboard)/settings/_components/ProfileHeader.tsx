@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import { EditProfileSheet } from "./EditProfileSheet";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   userId: string;
   initialName: string;
   initialAvatarUrl: string | null;
   email: string;
+  planLabel: string;
 }
 
-export function ProfileHeader({ userId, initialName, initialAvatarUrl, email }: Props) {
+export function ProfileHeader({ userId, initialName, initialAvatarUrl, email, planLabel }: Props) {
+  const t = useT();
   const [name, setName] = useState(initialName);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [editOpen, setEditOpen] = useState(false);
@@ -41,12 +44,12 @@ export function ProfileHeader({ userId, initialName, initialAvatarUrl, email }: 
           <p className="truncate text-base font-bold">{name}</p>
           <p className="truncate text-sm text-fg-muted">{email}</p>
           <span className="mt-1 inline-block rounded-full bg-[var(--glass-bg)] px-2.5 py-0.5 text-xs font-medium text-fg-muted">
-            แผนฟรี
+            {planLabel}
           </span>
         </div>
 
         {/* Edit cue */}
-        <span className="shrink-0 text-xs text-accent">แก้ไข</span>
+        <span className="shrink-0 text-xs text-accent">{t.settings.editCue}</span>
       </button>
 
       {editOpen && (

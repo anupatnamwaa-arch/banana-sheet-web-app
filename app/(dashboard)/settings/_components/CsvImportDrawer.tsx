@@ -15,6 +15,7 @@ import {
   type TypeMode,
   type TypeColumnMapping,
 } from "./csv-parse";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 const DATE_FORMATS: DateFormat[] = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 
@@ -26,6 +27,8 @@ const DEFAULT_TYPE_COL: TypeColumnMapping = {
 };
 
 export function CsvImportDrawer() {
+  const locale = useLocale();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -63,9 +66,9 @@ export function CsvImportDrawer() {
         note: find(["note", "หมายเหตุ", "description", "remark"]),
       });
     } catch (e) {
-      setParseError(e instanceof Error ? e.message : "อ่านไฟล์ไม่ได้");
+      setParseError(e instanceof Error ? e.message : locale === "en" ? "Could not read the file" : "อ่านไฟล์ไม่ได้");
     }
-  }, []);
+  }, [locale]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { "text/csv": [".csv"] }, multiple: false,
@@ -98,7 +101,7 @@ export function CsvImportDrawer() {
       setResult(res);
       setParsed(null);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setSubmitError(e instanceof Error ? e.message : t.common.error);
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +117,7 @@ export function CsvImportDrawer() {
         className="flex w-full items-center gap-3 rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-sm font-medium"
       >
         <Upload size={18} />
-        นำเข้า CSV
+        {t.settings.csvImportBtn}
       </button>
 
       <AnimatePresence>
@@ -138,7 +141,7 @@ export function CsvImportDrawer() {
                 <div className="h-1 w-10 rounded-full bg-[var(--glass-border)]" />
               </div>
               <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">นำเข้าไฟล์ CSV</h2>
+                <h2 className="text-lg font-semibold">{t.settings.csvImportTitle}</h2>
                 <button onClick={() => { if (!submitting) setOpen(false); }} className="text-fg-muted" disabled={submitting}>
                   <X size={20} />
                 </button>
@@ -146,7 +149,7 @@ export function CsvImportDrawer() {
 
               {/* Duplicate warning */}
               <p className="mb-4 text-xs text-fg-muted">
-                ⚠ การนำเข้าซ้ำจะสร้างรายการซ้ำ
+                {locale === "en" ? "⚠ Importing the same file again will create duplicate entries." : "⚠ การนำเข้าซ้ำจะสร้างรายการซ้ำ"}
               </p>
 
               {/* SUCCESS STATE */}
@@ -154,16 +157,18 @@ export function CsvImportDrawer() {
                 <div className="flex flex-col items-center gap-3 py-8 text-center">
                   <CheckCircle2 size={40} className="text-positive" />
                   <p className="text-lg font-semibold">
-                    ✓ นำเข้าสำเร็จ {result.inserted} รายการ
+                    {locale === "en" ? `✓ Imported ${result.inserted} entries` : `✓ นำเข้าสำเร็จ ${result.inserted} รายการ`}
                   </p>
                   {result.skipped > 0 && (
-                    <p className="text-sm text-fg-muted">ข้ามไป {result.skipped} รายการ (ข้อมูลไม่ถูกต้อง)</p>
+                    <p className="text-sm text-fg-muted">
+                      {locale === "en" ? `Skipped ${result.skipped} invalid entries` : `ข้ามไป ${result.skipped} รายการ (ข้อมูลไม่ถูกต้อง)`}
+                    </p>
                   )}
                   <button
                     onClick={() => setOpen(false)}
                     className="mt-2 rounded-2xl bg-accent px-6 py-2 text-sm font-semibold text-black"
                   >
-                    เสร็จสิ้น
+                    {locale === "en" ? "Done" : "เสร็จสิ้น"}
                   </button>
                 </div>
               )}
@@ -182,9 +187,13 @@ export function CsvImportDrawer() {
                     <input {...getInputProps()} />
                     <Upload size={24} className="mx-auto mb-2 text-fg-muted" />
                     <p className="text-sm font-medium">
-                      {isDragActive ? "วางไฟล์ที่นี่" : "วางไฟล์ CSV หรือแตะเพื่อเลือก"}
+                      {isDragActive
+                        ? locale === "en" ? "Drop the file here" : "วางไฟล์ที่นี่"
+                        : locale === "en" ? "Drop a CSV file or tap to choose" : "วางไฟล์ CSV หรือแตะเพื่อเลือก"}
                     </p>
-                    <p className="mt-1 text-xs text-fg-muted">รองรับ: ธนาคาร, Google Sheets, ฯลฯ</p>
+                    <p className="mt-1 text-xs text-fg-muted">
+                      {locale === "en" ? "Supports bank exports, Google Sheets, and more." : "รองรับ: ธนาคาร, Google Sheets, ฯลฯ"}
+                    </p>
                   </div>
 
                   {parseError && (
@@ -356,8 +365,8 @@ export function CsvImportDrawer() {
                         className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-40"
                       >
                         {submitting
-                          ? "กำลังนำเข้า…"
-                          : `นำเข้า ${validRowCount} รายการ`}
+                          ? t.settings.csvImporting
+                          : locale === "en" ? `Import ${validRowCount} entries` : `นำเข้า ${validRowCount} รายการ`}
                       </button>
                     </div>
                   )}

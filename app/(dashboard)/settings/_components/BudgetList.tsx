@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setBudget, deleteBudget } from "@/app/actions/budgets";
 import { categoryIcon } from "@/app/(dashboard)/analytics/_components/category-icon";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   userId: string;
@@ -24,6 +25,8 @@ const CATEGORY_COLORS = [
 ];
 
 export function BudgetList({ userId }: Props) {
+  const locale = useLocale();
+  const t = useT();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
@@ -122,7 +125,7 @@ export function BudgetList({ userId }: Props) {
   if (loading) {
     return (
       <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--bg-elevated)]">
-        <div className="px-4 py-3.5 text-sm text-fg-muted">กำลังโหลด…</div>
+        <div className="px-4 py-3.5 text-sm text-fg-muted">{t.common.loading}</div>
       </div>
     );
   }
@@ -139,11 +142,11 @@ export function BudgetList({ userId }: Props) {
           💰
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">งบใช้จ่ายรายเดือน</p>
+          <p className="text-sm font-medium">{t.settings.monthlyBudget}</p>
           <p className="mt-0.5 text-xs text-fg-muted">
             {budgetedCount > 0
-              ? `งบรวม ${fmt(liveTotal)} · ${budgetedCount} หมวด`
-              : "ยังไม่ได้ตั้งงบ — แตะเพื่อตั้งค่า"}
+              ? locale === "en" ? `Total ${fmt(liveTotal)} · ${budgetedCount} categories` : `งบรวม ${fmt(liveTotal)} · ${budgetedCount} หมวด`
+              : locale === "en" ? "No budget yet — tap to set one" : "ยังไม่ได้ตั้งงบ — แตะเพื่อตั้งค่า"}
           </p>
         </div>
         {open ? (
@@ -158,13 +161,15 @@ export function BudgetList({ userId }: Props) {
         <div className="border-t border-[var(--glass-border)] px-4 pb-4 pt-3">
           {categories.length === 0 ? (
             <p className="py-4 text-center text-sm text-fg-muted">
-              ยังไม่มีหมวดหมู่รายจ่าย — เพิ่มรายการค่าใช้จ่ายก่อนแล้วค่อยตั้งงบ
+              {locale === "en"
+                ? "No expense categories yet. Add an expense entry before setting a budget."
+                : "ยังไม่มีหมวดหมู่รายจ่าย — เพิ่มรายการค่าใช้จ่ายก่อนแล้วค่อยตั้งงบ"}
             </p>
           ) : (
             <>
               {/* Total budget banner */}
               <div className="mb-4 flex items-baseline justify-between rounded-2xl bg-[var(--glass-bg)] px-3 py-2.5">
-                <p className="text-xs text-fg-muted">งบรายจ่ายรวมทั้งหมด</p>
+                <p className="text-xs text-fg-muted">{locale === "en" ? "Total expense budget" : "งบรายจ่ายรวมทั้งหมด"}</p>
                 <p className="text-xl font-bold tabular-nums text-accent">{fmt(liveTotal)}</p>
               </div>
 
@@ -193,7 +198,7 @@ export function BudgetList({ userId }: Props) {
 
                         {saved[cat.id] && <Check size={12} className="text-positive" />}
                         {errored[cat.id] && (
-                          <span className="text-xs text-negative">ผิดพลาด</span>
+                          <span className="text-xs text-negative">{locale === "en" ? "Error" : "ผิดพลาด"}</span>
                         )}
 
                         {/* Budget input */}
@@ -232,7 +237,9 @@ export function BudgetList({ userId }: Props) {
 
               {/* Footer hint */}
               <p className="mt-4 text-xs text-fg-muted">
-                งบแต่ละหมวดสำหรับ <span className="text-negative">รายจ่าย</span> เท่านั้น · แตะออกจากช่องเพื่อบันทึกอัตโนมัติ
+                {locale === "en" ? "Category budgets apply to " : "งบแต่ละหมวดสำหรับ "}
+                <span className="text-negative">{locale === "en" ? "expenses" : "รายจ่าย"}</span>
+                {locale === "en" ? " only. Tap outside a field to save automatically." : " เท่านั้น · แตะออกจากช่องเพื่อบันทึกอัตโนมัติ"}
               </p>
             </>
           )}

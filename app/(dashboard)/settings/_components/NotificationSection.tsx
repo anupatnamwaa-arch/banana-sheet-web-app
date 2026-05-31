@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { SettingsSection } from "./SettingsSection";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
-const NOTIF_KEYS = [
-  { key: "notif-daily",   icon: "⏰", label: "เตือนบันทึกรายวัน",         sublabel: "ทุกวัน 21:00" },
-  { key: "notif-budget",  icon: "⚠️", label: "เตือนใกล้เกินงบ",           sublabel: "เมื่อใช้ไปเกิน 80%" },
-  { key: "notif-debt",    icon: "💳", label: "เตือนครบกำหนดชำระหนี้",     sublabel: "3 วันก่อนครบกำหนด" },
-  { key: "notif-weekly",  icon: "📊", label: "สรุปรายสัปดาห์",            sublabel: "ทุกวันอาทิตย์" },
-];
+const NOTIF_KEYS = ["notif-daily", "notif-budget", "notif-debt", "notif-weekly"] as const;
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -29,12 +25,27 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 }
 
 export function NotificationSection() {
+  const locale = useLocale();
+  const t = useT();
   const [values, setValues] = useState<Record<string, boolean>>({});
+  const notifications = locale === "en"
+    ? [
+        { key: "notif-daily", icon: "⏰", label: "Daily logging reminder", sublabel: "Every day at 21:00" },
+        { key: "notif-budget", icon: "⚠️", label: "Budget limit reminder", sublabel: "When spending exceeds 80%" },
+        { key: "notif-debt", icon: "💳", label: "Liability due reminder", sublabel: "3 days before the due date" },
+        { key: "notif-weekly", icon: "📊", label: "Weekly summary", sublabel: "Every Sunday" },
+      ]
+    : [
+        { key: "notif-daily", icon: "⏰", label: "เตือนบันทึกรายวัน", sublabel: "ทุกวัน 21:00" },
+        { key: "notif-budget", icon: "⚠️", label: "เตือนใกล้เกินงบ", sublabel: "เมื่อใช้ไปเกิน 80%" },
+        { key: "notif-debt", icon: "💳", label: "เตือนครบกำหนดชำระหนี้", sublabel: "3 วันก่อนครบกำหนด" },
+        { key: "notif-weekly", icon: "📊", label: "สรุปรายสัปดาห์", sublabel: "ทุกวันอาทิตย์" },
+      ];
 
   useEffect(() => {
     const stored: Record<string, boolean> = {};
-    for (const n of NOTIF_KEYS) {
-      stored[n.key] = localStorage.getItem(n.key) === "true";
+    for (const key of NOTIF_KEYS) {
+      stored[key] = localStorage.getItem(key) === "true";
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setValues(stored);
@@ -46,8 +57,8 @@ export function NotificationSection() {
   }
 
   return (
-    <SettingsSection title="การแจ้งเตือน">
-      {NOTIF_KEYS.map((n) => (
+    <SettingsSection title={t.settings.sectionNotifications}>
+      {notifications.map((n) => (
         <div key={n.key} className="flex items-center gap-3 px-4 py-3.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
             {n.icon}

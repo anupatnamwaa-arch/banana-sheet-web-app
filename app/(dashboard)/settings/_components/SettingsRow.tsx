@@ -1,4 +1,8 @@
+"use client";
+
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   icon?: React.ReactNode;
@@ -8,24 +12,22 @@ interface Props {
   badge?: string;
   danger?: boolean;
   comingSoon?: boolean;
+  comingSoonLabel?: string;
   onClick?: () => void;
+  href?: string;
   /** Right-side slot — replaces chevron (e.g. a toggle switch). */
   right?: React.ReactNode;
 }
 
 export function SettingsRow({
-  icon, label, sublabel, value, badge, danger, comingSoon, onClick, right,
+  icon, label, sublabel, value, badge, danger, comingSoon, comingSoonLabel, onClick, href, right,
 }: Props) {
-  const Tag = onClick ? "button" : "div";
-
-  return (
-    <Tag
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${
-        onClick ? "hover:bg-[var(--glass-bg)] active:bg-[var(--glass-bg)]" : ""
-      }`}
-    >
+  const t = useT();
+  const className = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${
+    onClick || href ? "hover:bg-[var(--glass-bg)] active:bg-[var(--glass-bg)]" : ""
+  }`;
+  const content = (
+    <>
       {icon && (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-base">
           {icon}
@@ -39,7 +41,7 @@ export function SettingsRow({
 
       {comingSoon && (
         <span className="shrink-0 rounded-full bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] text-fg-muted">
-          เร็ว ๆ นี้
+          {comingSoonLabel ?? t.common.comingSoon}
         </span>
       )}
       {badge && !comingSoon && (
@@ -51,9 +53,13 @@ export function SettingsRow({
         <span className="shrink-0 text-xs text-fg-muted">{value}</span>
       )}
       {right}
-      {onClick && !right && (
+      {(onClick || href) && !right && (
         <ChevronRight size={16} className="shrink-0 text-fg-muted" />
       )}
-    </Tag>
+    </>
   );
+
+  if (href) return <Link href={href} className={className}>{content}</Link>;
+  if (onClick) return <button type="button" onClick={onClick} className={className}>{content}</button>;
+  return <div className={className}>{content}</div>;
 }
