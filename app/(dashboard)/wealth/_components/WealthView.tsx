@@ -10,11 +10,7 @@ import { GoalFormDrawer } from "./GoalFormDrawer";
 import { WealthTrendChart } from "./WealthTrendChart";
 import { AssetGrowthChart } from "./AssetGrowthChart";
 import { WealthImportDrawer } from "./WealthImportDrawer";
-
-const THAI_MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 function assetIcon(name: string): string {
   if (/เงินสด|cash/i.test(name)) return "💵";
@@ -34,24 +30,7 @@ function debtIcon(name: string): string {
   return "🧾";
 }
 
-function thaiDate(iso: string): string {
-  const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-  const [y, m, dd] = parts.split("-").map(Number);
-  return `${dd} ${THAI_MONTHS[m - 1]} ${y + 543}`;
-}
-
-function dueLabel(due: string): { text: string; near: boolean } {
-  const [y, m, d] = due.split("-").map(Number);
-  const dueMs = Date.UTC(y, m - 1, d);
-  const days = Math.round((dueMs - Date.now()) / 86_400_000);
-  return { text: `ครบกำหนด ${d} ${THAI_MONTHS[m - 1]}`, near: days >= 0 && days <= 7 };
-}
+// displayDate and dueLabel are defined inside WealthView to access t/locale
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -62,7 +41,29 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 export function WealthView({ data }: { data: WealthData }) {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
+
+  function displayDate(iso: string): string {
+    const d = new Date(iso);
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+    const [y, m, dd] = parts.split("-").map(Number);
+    return `${dd} ${t.calendar.months[m - 1]} ${y + t.calendar.yearOffset}`;
+  }
+
+  function dueLabel(due: string): { text: string; near: boolean } {
+    const [y, m, d] = due.split("-").map(Number);
+    const dueMs = Date.UTC(y, m - 1, d);
+    const days = Math.round((dueMs - Date.now()) / 86_400_000);
+    const month = t.calendar.months[m - 1];
+    return { text: `${t.wealth.due} ${d} ${month}`, near: days >= 0 && days <= 7 };
+  }
   const [wealthDrawer, setWealthDrawer] = useState<
     { mode: "add" | "edit"; item?: WealthRow; initialType?: "asset" | "liability" } | null
   >(null);
@@ -90,21 +91,20 @@ export function WealthView({ data }: { data: WealthData }) {
   const maxAsset = assets[0]?.value ?? 1;
 
   // Debt health status
-  let debtStatus = { text: "ยังไม่มีหนี้สิน สุขภาพการเงินดีมาก", color: "text-positive" };
+  let debtStatus = { text: t.wealth.debtHealthNone, color: "text-positive" };
   if (debtRatio !== null) {
-    if (debtRatio > 50) debtStatus = { text: "ระดับหนี้ค่อนข้างสูง ควรวางแผนลดหนี้", color: "text-negative" };
-    else if (debtRatio > 30) debtStatus = { text: "ระดับหนี้ปานกลาง จับตาดูไว้นิดนึง", color: "text-amber-400" };
-    else debtStatus = { text: "ระดับหนี้ยังอยู่ในเกณฑ์ควบคุมได้", color: "text-positive" };
+    if (debtRatio > 50) debtStatus = { text: t.wealth.debtHealthHigh, color: "text-negative" };
+    else if (debtRatio > 30) debtStatus = { text: t.wealth.debtHealthMid, color: "text-amber-400" };
+    else debtStatus = { text: t.wealth.debtHealthLow, color: "text-positive" };
   }
 
   const insights: string[] = [];
   if (nwChange !== null && nwChange !== 0) {
-    insights.push(
-      `มูลค่าสุทธิของคุณ${nwChange > 0 ? "เพิ่มขึ้น" : "ลดลง"} ${formatTHB(Math.abs(nwChange))} จากเดือนก่อน`
-    );
+    const changeKey = nwChange > 0 ? t.wealth.netWorthIncreased : t.wealth.netWorthDecreased;
+    insights.push(`${changeKey} ${formatTHB(Math.abs(nwChange))} ${t.wealth.netWorthFromLastMonth}`);
   }
   if (debtRatio !== null && totalLiabilities > 0) {
-    insights.push(`หนี้สินคิดเป็น ${debtRatio}% ของสินทรัพย์ทั้งหมด`);
+    insights.push(t.wealth.debtRatioPct.replace("{pct}", String(debtRatio)));
   }
 
   function editAsset(a: AssetRow) {
@@ -123,12 +123,14 @@ export function WealthView({ data }: { data: WealthData }) {
       <header className="pt-2">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">ความมั่งคั่ง</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t.wealth.title}</h1>
             <p className="mt-0.5 text-sm text-fg-muted">
-              ดูภาพรวมสินทรัพย์ หนี้สิน และเป้าหมายการเงินของคุณ
+              {t.wealth.subtitle}
             </p>
             {updatedAt && (
-              <p className="mt-1 text-xs text-fg-muted">อัปเดตล่าสุด: {thaiDate(updatedAt)}</p>
+              <p className="mt-1 text-xs text-fg-muted">
+                {t.wealth.lastUpdated}: {displayDate(updatedAt)}
+              </p>
             )}
           </div>
           <WealthImportDrawer onSuccess={refresh} />
@@ -138,28 +140,28 @@ export function WealthView({ data }: { data: WealthData }) {
       {!hasData ? (
         <Card className="p-8 text-center">
           <p className="text-3xl">💎</p>
-          <p className="mt-3 text-base font-semibold">ยังไม่มีข้อมูลความมั่งคั่ง</p>
+          <p className="mt-3 text-base font-semibold">{t.wealth.noWealthData}</p>
           <p className="mt-1 text-sm text-fg-muted">
-            เพิ่มสินทรัพย์ หนี้สิน หรือเป้าหมายการเงิน เพื่อดูมูลค่าสุทธิของคุณ
+            {t.wealth.startTracking}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
               onClick={() => setWealthDrawer({ mode: "add", initialType: "asset" })}
               className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-black"
             >
-              เพิ่มทรัพย์สิน
+              {t.wealth.addAsset}
             </button>
             <button
               onClick={() => setWealthDrawer({ mode: "add", initialType: "liability" })}
               className="rounded-full border border-[var(--glass-border)] px-4 py-1.5 text-xs font-semibold text-fg"
             >
-              เพิ่มหนี้สิน
+              {t.wealth.addDebt}
             </button>
             <button
               onClick={() => setGoalDrawer({ mode: "add" })}
               className="rounded-full border border-[var(--glass-border)] px-4 py-1.5 text-xs font-semibold text-fg"
             >
-              เพิ่มเป้าหมาย
+              {t.wealth.addGoal}
             </button>
           </div>
           <div className="mt-3 flex justify-center">
@@ -174,14 +176,14 @@ export function WealthView({ data }: { data: WealthData }) {
               className="absolute inset-x-0 top-0 h-1"
               style={{ background: "linear-gradient(90deg,#818cf8,transparent)" }}
             />
-            <p className="text-xs text-fg-muted">มูลค่าสุทธิ</p>
+            <p className="text-xs text-fg-muted">{t.wealth.netWorth}</p>
             <p className={`mt-1 text-4xl font-bold tracking-tight tabular-nums ${netWorth < 0 ? "text-negative" : "text-fg"}`}>
               {netWorth < 0 ? "-" : ""}{formatTHB(Math.abs(netWorth))}
             </p>
-            <p className="mt-1 text-xs text-fg-muted">สินทรัพย์ทั้งหมด − หนี้สินทั้งหมด</p>
+            <p className="mt-1 text-xs text-fg-muted">{t.wealth.totalAssets} − {t.wealth.totalLiabilities}</p>
             {nwChange !== null && nwChange !== 0 && (
               <p className={`mt-2 text-xs font-medium ${nwChange > 0 ? "text-positive" : "text-negative"}`}>
-                {nwChange > 0 ? "เพิ่มขึ้น" : "ลดลง"} {formatTHB(Math.abs(nwChange))} จากเดือนก่อน
+                {nwChange > 0 ? t.wealth.netWorthIncreased : t.wealth.netWorthDecreased} {formatTHB(Math.abs(nwChange))} {t.wealth.netWorthFromLastMonth}
               </p>
             )}
           </div>
@@ -189,37 +191,37 @@ export function WealthView({ data }: { data: WealthData }) {
           {/* Asset + debt summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-positive/10 p-3">
-              <p className="text-xs text-fg-muted">สินทรัพย์รวม</p>
+              <p className="text-xs text-fg-muted">{t.wealth.totalAssets}</p>
               <p className="mt-1 text-xl font-bold tabular-nums text-positive">{formatTHB(totalAssets)}</p>
-              <p className="mt-1 text-[11px] leading-tight text-fg-muted">เงินสด ออมทรัพย์ ลงทุน และอื่น ๆ</p>
+              <p className="mt-1 text-[11px] leading-tight text-fg-muted">{t.wealth.assetsSummaryHint}</p>
             </div>
             <div className="rounded-2xl bg-negative/10 p-3">
-              <p className="text-xs text-fg-muted">หนี้สินรวม</p>
+              <p className="text-xs text-fg-muted">{t.wealth.totalLiabilities}</p>
               <p className="mt-1 text-xl font-bold tabular-nums text-negative">{formatTHB(totalLiabilities)}</p>
-              <p className="mt-1 text-[11px] leading-tight text-fg-muted">บัตรเครดิต สินเชื่อ และยอดผ่อนคงเหลือ</p>
+              <p className="mt-1 text-[11px] leading-tight text-fg-muted">{t.wealth.liabilitiesSummaryHint}</p>
             </div>
           </div>
 
           {/* Asset breakdown */}
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold">สินทรัพย์ของฉัน</p>
+              <p className="text-sm font-semibold">{t.wealth.assets}</p>
               <div className="flex items-center gap-3">
                 {assets.length > 5 && (
                   <button onClick={() => setShowAllAssets((v) => !v)} className="text-xs text-fg-muted">
-                    {showAllAssets ? "ย่อ" : "ดูทั้งหมด"}
+                    {showAllAssets ? t.wealth.showLess : t.wealth.showAll}
                   </button>
                 )}
                 <button
                   onClick={() => setWealthDrawer({ mode: "add", initialType: "asset" })}
                   className="text-xs text-accent"
                 >
-                  เพิ่ม
+                  {t.wealth.add}
                 </button>
               </div>
             </div>
             {assets.length === 0 ? (
-              <p className="py-3 text-center text-xs text-fg-muted">ยังไม่มีสินทรัพย์ — แตะ “เพิ่ม” เพื่อเริ่ม</p>
+              <p className="py-3 text-center text-xs text-fg-muted">{t.wealth.noAssets}</p>
             ) : (
               <div className="space-y-3">
                 {topAssets.map((a) => {
@@ -248,18 +250,18 @@ export function WealthView({ data }: { data: WealthData }) {
           {/* Debt breakdown */}
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold">หนี้สินของฉัน</p>
+              <p className="text-sm font-semibold">{t.wealth.liabilities}</p>
               <button
                 onClick={() => setWealthDrawer({ mode: "add", initialType: "liability" })}
                 className="text-xs text-accent"
               >
-                เพิ่ม
+                {t.wealth.add}
               </button>
             </div>
             {liabilities.length === 0 ? (
               <div className="py-4 text-center">
-                <p className="text-sm font-medium text-positive">ไม่มีหนี้สินตอนนี้ 🎉</p>
-                <p className="mt-1 text-xs text-fg-muted">ดีมาก รักษาวินัยแบบนี้ต่อไป</p>
+                <p className="text-sm font-medium text-positive">{t.wealth.noLiabilitiesNow}</p>
+                <p className="mt-1 text-xs text-fg-muted">{t.wealth.noLiabilitiesHint}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -275,8 +277,8 @@ export function WealthView({ data }: { data: WealthData }) {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{l.name}</p>
                         <p className="text-xs text-fg-muted">
-                          คงเหลือ {formatTHB(l.value)}
-                          {l.monthly_payment ? ` • ผ่อนเดือนละ ${formatTHB(l.monthly_payment)}` : ""}
+                          {t.wealth.remaining} {formatTHB(l.value)}
+                          {l.monthly_payment ? ` • ${t.wealth.monthlyPayment} ${formatTHB(l.monthly_payment)}` : ""}
                         </p>
                         {due && (
                           <p className={`text-xs ${due.near ? "text-amber-400" : "text-fg-muted"}`}>{due.text}</p>
@@ -295,19 +297,19 @@ export function WealthView({ data }: { data: WealthData }) {
           {/* Debt health */}
           {liabilities.length > 0 && (
             <Card>
-              <p className="mb-3 text-sm font-semibold">สุขภาพหนี้</p>
+              <p className="mb-3 text-sm font-semibold">{t.wealth.debtHealth}</p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <p className="text-[11px] text-fg-muted">หนี้ต่อสินทรัพย์</p>
+                  <p className="text-[11px] text-fg-muted">{t.wealth.debtRatio}</p>
                   <p className="mt-0.5 text-lg font-bold tabular-nums">{debtRatio !== null ? `${debtRatio}%` : "—"}</p>
                 </div>
                 <div className="border-x border-[var(--glass-border)]">
-                  <p className="text-[11px] text-fg-muted">ผ่อนต่อเดือน</p>
+                  <p className="text-[11px] text-fg-muted">{t.wealth.monthlyPayments}</p>
                   <p className="mt-0.5 text-lg font-bold tabular-nums">{formatTHB(monthlyDebt)}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-fg-muted">ใกล้ครบกำหนด</p>
-                  <p className="mt-0.5 text-lg font-bold tabular-nums">{nearDue} รายการ</p>
+                  <p className="text-[11px] text-fg-muted">{t.wealth.dueSoon}</p>
+                  <p className="mt-0.5 text-lg font-bold tabular-nums">{nearDue} {t.wealth.items}</p>
                 </div>
               </div>
               <p className={`mt-3 text-xs font-medium ${debtStatus.color}`}>{debtStatus.text}</p>
@@ -317,32 +319,32 @@ export function WealthView({ data }: { data: WealthData }) {
           {/* Emergency fund */}
           {recommendedTarget > 0 && (
             <Card>
-              <p className="mb-1 text-sm font-semibold">เงินสำรองฉุกเฉิน</p>
+              <p className="mb-1 text-sm font-semibold">{t.wealth.emergencyFund}</p>
               <p className="text-2xl font-bold tabular-nums text-blue-400">
                 {formatTHB(emergencyFund)} <span className="text-sm font-normal text-fg-muted">/ {formatTHB(recommendedTarget)}</span>
               </p>
               {coverageMonths !== null && (
                 <p className="mt-0.5 text-xs text-fg-muted">
-                  ครอบคลุมค่าใช้จ่ายประมาณ {coverageMonths.toFixed(1)} เดือน
+                  {t.wealth.coversAbout} {coverageMonths.toFixed(1)} {t.wealth.months}
                 </p>
               )}
               <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
                 <div className="h-full rounded-full bg-blue-400" style={{ width: `${efPct}%` }} />
               </div>
-              <p className="mt-2 text-xs text-fg-muted">เป้าหมายแนะนำ: 3–6 เดือนของค่าใช้จ่าย</p>
+              <p className="mt-2 text-xs text-fg-muted">{t.wealth.recommendedTarget}</p>
             </Card>
           )}
 
           {/* Goals */}
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold">เป้าหมายการเงิน</p>
+              <p className="text-sm font-semibold">{t.wealth.goals}</p>
               <button onClick={() => setGoalDrawer({ mode: "add" })} className="text-xs text-accent">
-                เพิ่มเป้าหมาย
+                {t.wealth.addGoal}
               </button>
             </div>
             {goals.length === 0 ? (
-              <p className="py-3 text-center text-xs text-fg-muted">ยังไม่มีเป้าหมาย — แตะ “เพิ่มเป้าหมาย” เพื่อเริ่ม</p>
+              <p className="py-3 text-center text-xs text-fg-muted">{t.wealth.noGoals}</p>
             ) : (
               <div className="space-y-3">
                 {goals.map((g) => {
@@ -355,7 +357,7 @@ export function WealthView({ data }: { data: WealthData }) {
                       </div>
                       <p className="text-xs text-fg-muted tabular-nums">
                         {formatTHB(g.current_amount)} / {formatTHB(g.target_amount)}
-                        {g.target_date ? ` • เป้าหมาย ${thaiDate(g.target_date)}` : ""}
+                        {g.target_date ? ` • ${t.wealth.target} ${displayDate(g.target_date)}` : ""}
                       </p>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
                         <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
@@ -375,7 +377,7 @@ export function WealthView({ data }: { data: WealthData }) {
           {/* Insights */}
           {insights.length > 0 && (
             <div className="space-y-2">
-              <p className="px-1 text-sm font-semibold">ข้อสังเกต</p>
+              <p className="px-1 text-sm font-semibold">{t.wealth.insights}</p>
               {insights.map((text, i) => (
                 <Card key={i} className="flex items-start gap-3">
                   <span className="mt-0.5 shrink-0 text-lg">✨</span>

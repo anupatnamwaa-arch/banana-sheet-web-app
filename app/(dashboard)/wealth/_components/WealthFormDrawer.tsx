@@ -7,6 +7,7 @@ import { X, Trash2, AlertTriangle, Droplet } from "lucide-react";
 import { addWealth, updateWealth, deleteWealth } from "@/app/actions/wealth";
 import type { WealthPayload } from "@/app/actions/wealth";
 import type { WealthType } from "@/lib/types";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 export interface WealthRow {
   id: string;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }: Props) {
+  const t = useT();
   const [name, setName] = useState(item?.name ?? "");
   const [type, setType] = useState<WealthType>(item?.type ?? initialType ?? "asset");
   const [value, setValue] = useState(item ? String(item.value) : "");
@@ -41,9 +43,9 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setError("กรุณากรอกชื่อ"); return; }
+    if (!name.trim()) { setError(t.wealth.errorName); return; }
     const num = parseFloat(value);
-    if (!num || num <= 0) { setError("กรุณากรอกมูลค่าที่ถูกต้อง"); return; }
+    if (!num || num <= 0) { setError(t.wealth.errorValue); return; }
 
     setLoading(true); setError(null);
     const mp = parseFloat(monthlyPayment);
@@ -61,7 +63,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.common.error);
       setLoading(false);
     }
   }
@@ -74,7 +76,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : t.common.error);
       setDeleting(false);
     }
   }
@@ -101,7 +103,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
         </div>
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {mode === "add" ? "เพิ่มรายการ" : "แก้ไขรายการ"}
+            {mode === "add" ? t.wealth.addEntry : t.wealth.editEntry}
           </h2>
           <button onClick={() => { if (!busy) onClose(); }} disabled={busy}>
             <X size={20} className="text-fg-muted" />
@@ -111,16 +113,16 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type toggle */}
           <div className="flex gap-2">
-            {(["asset", "liability"] as WealthType[]).map((t) => (
+            {(["asset", "liability"] as WealthType[]).map((entryType) => (
               <button
-                key={t}
+                key={entryType}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => setType(entryType)}
                 className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
-                  type === t ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
+                  type === entryType ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
               >
-                {t === "asset" ? "สินทรัพย์" : "หนี้สิน"}
+                {entryType === "asset" ? t.wealth.assets : t.wealth.liabilities}
               </button>
             ))}
           </div>
@@ -128,7 +130,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
           {/* Name */}
           <input
             type="text"
-            placeholder="ชื่อ (เช่น บัญชีออมทรัพย์)"
+            placeholder={t.wealth.namePlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputClass}
@@ -141,7 +143,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
             inputMode="decimal"
             min="0"
             step="any"
-            placeholder="มูลค่า (฿)"
+            placeholder={t.wealth.valuePlaceholder}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             className={inputClass}
@@ -157,7 +159,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
             >
               <span className="flex items-center gap-2">
                 <Droplet size={16} className={isLiquid ? "text-sky-400" : "text-fg-muted"} />
-                สภาพคล่อง
+                {t.wealth.liquidAssetLabel}
               </span>
               <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${isLiquid ? "bg-accent" : "bg-[var(--glass-border)]"}`}>
                 <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${isLiquid ? "translate-x-4" : ""}`} />
@@ -165,7 +167,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
             </button>
           )}
           {type === "asset" && (
-            <p className="-mt-2 text-xs text-fg-muted">นับรวมในเงินสำรองฉุกเฉิน</p>
+            <p className="-mt-2 text-xs text-fg-muted">{t.wealth.liquidAssetHint}</p>
           )}
 
           {/* Debt details — liabilities only */}
@@ -176,13 +178,13 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
                 inputMode="decimal"
                 min="0"
                 step="any"
-                placeholder="ยอดผ่อน/ชำระต่อเดือน (฿) — ไม่บังคับ"
+                placeholder={t.wealth.monthlyPaymentPlaceholder}
                 value={monthlyPayment}
                 onChange={(e) => setMonthlyPayment(e.target.value)}
                 className={inputClass}
               />
               <div>
-                <label className="mb-1 block text-xs text-fg-muted">วันครบกำหนด (ไม่บังคับ)</label>
+                <label className="mb-1 block text-xs text-fg-muted">{t.wealth.dueDateLabel}</label>
                 <input
                   type="date"
                   value={dueDate}
@@ -205,7 +207,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
             disabled={busy}
             className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-40"
           >
-            {loading ? "กำลังบันทึก…" : mode === "add" ? "บันทึก" : "อัปเดต"}
+            {loading ? t.common.loading : mode === "add" ? t.common.save : t.wealth.update}
           </button>
 
           {mode === "edit" && (
@@ -216,7 +218,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--negative)]/40 py-3 text-sm font-medium text-[var(--negative)] disabled:opacity-40"
             >
               <Trash2 size={16} />
-              {deleting ? "กำลังลบ…" : "ลบรายการ"}
+              {deleting ? t.common.loading : t.common.delete}
             </button>
           )}
         </form>

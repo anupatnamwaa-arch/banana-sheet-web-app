@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, AlertTriangle } from "lucide-react";
 import { addGoal, updateGoal, deleteGoal, type GoalPayload } from "@/app/actions/goals";
 import type { Goal } from "@/lib/types";
+import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   mode: "add" | "edit";
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
+  const dict = useT();
   const [name, setName] = useState(goal?.name ?? "");
   const [target, setTarget] = useState(goal ? String(goal.target_amount) : "");
   const [current, setCurrent] = useState(goal ? String(goal.current_amount) : "");
@@ -25,11 +27,11 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setError("กรุณากรอกชื่อเป้าหมาย"); return; }
+    if (!name.trim()) { setError(dict.wealth.errorGoalName); return; }
     const t = parseFloat(target);
-    if (!t || t <= 0) { setError("กรุณากรอกเป้าหมายที่ถูกต้อง"); return; }
+    if (!t || t <= 0) { setError(dict.wealth.errorGoalTarget); return; }
     const c = parseFloat(current) || 0;
-    if (c < 0) { setError("ยอดสะสมต้องไม่ติดลบ"); return; }
+    if (c < 0) { setError(dict.wealth.errorGoalNegative); return; }
 
     setLoading(true); setError(null);
     const payload: GoalPayload = {
@@ -44,7 +46,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : dict.common.error);
       setLoading(false);
     }
   }
@@ -57,7 +59,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ กรุณาลองใหม่");
+      setError(e instanceof Error ? e.message : dict.common.error);
       setDeleting(false);
     }
   }
@@ -84,7 +86,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
         </div>
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {mode === "add" ? "เพิ่มเป้าหมาย" : "แก้ไขเป้าหมาย"}
+            {mode === "add" ? dict.wealth.addGoal : dict.wealth.editGoal}
           </h2>
           <button onClick={() => { if (!busy) onClose(); }} disabled={busy}>
             <X size={20} className="text-fg-muted" />
@@ -94,7 +96,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
-            placeholder="ชื่อเป้าหมาย (เช่น เที่ยวญี่ปุ่น)"
+            placeholder={dict.wealth.goalNamePlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputClass}
@@ -102,7 +104,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
           />
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-xs text-fg-muted">สะสมแล้ว (฿)</label>
+              <label className="mb-1 block text-xs text-fg-muted">{dict.wealth.savedSoFar}</label>
               <input
                 type="number" inputMode="decimal" min="0" step="any"
                 value={current}
@@ -111,7 +113,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
               />
             </div>
             <div className="flex-1">
-              <label className="mb-1 block text-xs text-fg-muted">เป้าหมาย (฿)</label>
+              <label className="mb-1 block text-xs text-fg-muted">{dict.wealth.goalTarget}</label>
               <input
                 type="number" inputMode="decimal" min="0" step="any"
                 value={target}
@@ -122,7 +124,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-fg-muted">วันที่เป้าหมาย (ไม่บังคับ)</label>
+            <label className="mb-1 block text-xs text-fg-muted">{dict.wealth.goalTargetDate}</label>
             <input
               type="date"
               value={targetDate}
@@ -143,7 +145,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
             disabled={busy}
             className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-40"
           >
-            {loading ? "กำลังบันทึก…" : mode === "add" ? "บันทึก" : "อัปเดต"}
+            {loading ? dict.common.loading : mode === "add" ? dict.common.save : dict.wealth.update}
           </button>
 
           {mode === "edit" && (
@@ -154,7 +156,7 @@ export function GoalFormDrawer({ mode, goal, onClose, onSuccess }: Props) {
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--negative)]/40 py-3 text-sm font-medium text-[var(--negative)] disabled:opacity-40"
             >
               <Trash2 size={16} />
-              {deleting ? "กำลังลบ…" : "ลบเป้าหมาย"}
+              {deleting ? dict.common.loading : dict.common.delete}
             </button>
           )}
         </form>

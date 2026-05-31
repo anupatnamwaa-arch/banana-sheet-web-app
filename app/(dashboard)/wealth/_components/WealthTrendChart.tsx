@@ -11,30 +11,14 @@ import {
 } from "recharts";
 import { formatTHB } from "@/lib/format";
 import type { TrendPoint } from "@/app/actions/wealth-data";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   trend: TrendPoint[];
 }
 
-const THAI_MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
-
-function monthLabel(ym: string): string {
-  const [y, m] = ym.split("-").map(Number);
-  const short = THAI_MONTHS[m - 1] ?? ym;
-  // Show year suffix only on Jan or first point
-  return m === 1 ? `${short} ${y + 543}` : short;
-}
 
 type Series = "assets" | "liabilities" | "netWorth";
-
-const SERIES_CONFIG: Record<Series, { label: string; color: string; key: keyof TrendPoint }> = {
-  assets:       { label: "สินทรัพย์",  color: "#34d399", key: "totalAssets" },
-  liabilities:  { label: "หนี้สิน",    color: "#f87171", key: "totalLiabilities" },
-  netWorth:     { label: "มูลค่าสุทธิ", color: "#818cf8", key: "netWorth" },
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ChartTooltip({ active, payload, label }: any) {
@@ -52,6 +36,21 @@ function ChartTooltip({ active, payload, label }: any) {
 }
 
 export function WealthTrendChart({ trend }: Props) {
+  const locale = useLocale();
+  const t = useT();
+
+  function monthLabel(ym: string): string {
+    const [y, m] = ym.split("-").map(Number);
+    const short = locale === "en"
+      ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(Date.UTC(y, m - 1, 1)))
+      : t.calendar.months[m - 1] ?? ym;
+    return m === 1 ? `${short} ${y + t.calendar.yearOffset}` : short;
+  }
+  const seriesConfig: Record<Series, { label: string; color: string; key: keyof TrendPoint }> = {
+    assets: { label: t.wealth.assets, color: "#34d399", key: "totalAssets" },
+    liabilities: { label: t.wealth.liabilities, color: "#f87171", key: "totalLiabilities" },
+    netWorth: { label: t.wealth.netWorth, color: "#818cf8", key: "netWorth" },
+  };
   const [active, setActive] = useState<Set<Series>>(
     new Set(["assets", "liabilities", "netWorth"])
   );
@@ -77,11 +76,11 @@ export function WealthTrendChart({ trend }: Props) {
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
-      <p className="mb-3 text-sm font-semibold">แนวโน้มความมั่งคั่ง</p>
+      <p className="mb-3 text-sm font-semibold">{t.wealth.wealthTrend}</p>
 
       {/* Toggle pills */}
       <div className="mb-4 flex gap-2">
-        {(Object.entries(SERIES_CONFIG) as [Series, typeof SERIES_CONFIG[Series]][]).map(
+        {(Object.entries(seriesConfig) as [Series, typeof seriesConfig[Series]][]).map(
           ([key, cfg]) => {
             const on = active.has(key);
             return (
@@ -118,7 +117,7 @@ export function WealthTrendChart({ trend }: Props) {
           />
           <YAxis hide />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />
-          {(Object.entries(SERIES_CONFIG) as [Series, typeof SERIES_CONFIG[Series]][]).map(
+          {(Object.entries(seriesConfig) as [Series, typeof seriesConfig[Series]][]).map(
             ([key, cfg]) =>
               active.has(key) ? (
                 <Line
@@ -137,7 +136,7 @@ export function WealthTrendChart({ trend }: Props) {
       </ResponsiveContainer>
 
       {trend.length >= 2 && (
-        <p className="mt-2 text-xs text-fg-muted">{trend.length} เดือนย้อนหลัง</p>
+        <p className="mt-2 text-xs text-fg-muted">{trend.length} {t.wealth.monthsOfHistory}</p>
       )}
     </div>
   );

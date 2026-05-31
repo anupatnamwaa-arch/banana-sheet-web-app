@@ -13,15 +13,12 @@ import {
 import { formatTHB } from "@/lib/format";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import type { ItemSnapshot } from "@/app/actions/wealth-data";
+import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
   snapshots: ItemSnapshot[];
 }
 
-const THAI_MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
-];
 
 const ITEM_COLORS = [
   "#34d399", "#facc15", "#38bdf8", "#818cf8",
@@ -31,17 +28,6 @@ const ITEM_COLORS = [
 type PeriodKey = "1mo" | "ytd" | "1y" | "all";
 type TabKey = "asset" | "liability";
 
-const PERIODS: { id: PeriodKey; label: string }[] = [
-  { id: "1mo", label: "1 เดือน" },
-  { id: "ytd", label: "YTD" },
-  { id: "1y", label: "1 ปี" },
-  { id: "all", label: "ทั้งหมด" },
-];
-
-function monthLabel(ym: string): string {
-  const [, m] = ym.split("-").map(Number);
-  return THAI_MONTHS[m - 1] ?? ym;
-}
 
 function periodStartMonth(period: PeriodKey): string {
   const { year, month } = bangkokToday();
@@ -88,6 +74,15 @@ function growthText(start: number, end: number): { pct: string; color: string } 
 }
 
 export function AssetGrowthChart({ snapshots }: Props) {
+  const locale = useLocale();
+  const t = useT();
+
+  function monthLabel(ym: string): string {
+    const [, m] = ym.split("-").map(Number);
+    return locale === "en"
+      ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(Date.UTC(2026, m - 1, 1)))
+      : t.calendar.months[m - 1] ?? ym;
+  }
   const [tab, setTab] = useState<TabKey>("asset");
   const [period, setPeriod] = useState<PeriodKey>("1y");
 
@@ -131,7 +126,7 @@ export function AssetGrowthChart({ snapshots }: Props) {
       }
       return row;
     });
-  }, [filtered, months, chartItems]);
+  }, [filtered, months, chartItems, locale]);
 
   // Growth cards: earliest vs latest value in period per item.
   const growthCards = useMemo(() => {
@@ -144,30 +139,36 @@ export function AssetGrowthChart({ snapshots }: Props) {
   }, [filtered, itemOrder]);
 
   const hasData = chartItems.length > 0 && months.length >= 1;
+  const periods: { id: PeriodKey; label: string }[] = [
+    { id: "1mo", label: t.wealth.period1mo },
+    { id: "ytd", label: "YTD" },
+    { id: "1y", label: t.wealth.period1y },
+    { id: "all", label: t.common.all },
+  ];
 
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] p-4">
-      <p className="mb-3 text-sm font-semibold">การเติบโตแต่ละรายการ</p>
+      <p className="mb-3 text-sm font-semibold">{t.wealth.growthByItem}</p>
 
       {/* Tab: asset / liability */}
       <div className="mb-3 flex gap-1 rounded-xl border border-[var(--glass-border)] p-1">
-        {(["asset", "liability"] as TabKey[]).map((t) => (
+        {(["asset", "liability"] as TabKey[]).map((entryType) => (
           <button
-            key={t}
+            key={entryType}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => setTab(entryType)}
             className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-              tab === t ? "bg-accent text-black" : "text-fg-muted"
+              tab === entryType ? "bg-accent text-black" : "text-fg-muted"
             }`}
           >
-            {t === "asset" ? "สินทรัพย์" : "หนี้สิน"}
+            {entryType === "asset" ? t.wealth.assets : t.wealth.liabilities}
           </button>
         ))}
       </div>
 
       {/* Period pills */}
       <div className="mb-4 flex gap-2">
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <button
             key={p.id}
             type="button"
@@ -185,8 +186,8 @@ export function AssetGrowthChart({ snapshots }: Props) {
 
       {!hasData ? (
         <div className="py-8 text-center text-xs text-fg-muted">
-          {tab === "asset" ? "ยังไม่มีข้อมูลสินทรัพย์" : "ยังไม่มีข้อมูลหนี้สิน"}
-          <br />ยอดจะแสดงหลังจากบันทึกแต่ละเดือน
+          {tab === "asset" ? t.wealth.noAssets : t.wealth.noDebts}
+          <br />{t.wealth.valuesAfterSnapshot}
         </div>
       ) : (
         <>
