@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
     const userPrompt = buildUserPrompt(result.data);
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4.5-nano",
+      model: "gpt-5.4-nano",
       temperature: 0.9,
       stream: true,
       response_format: { type: "json_object" },
