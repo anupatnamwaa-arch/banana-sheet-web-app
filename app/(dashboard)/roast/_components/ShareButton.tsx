@@ -6,10 +6,9 @@ import { toPng } from "html-to-image";
 
 interface Props {
   cardRef: RefObject<HTMLDivElement | null>;
-  disabled: boolean;
 }
 
-export function ShareButton({ cardRef, disabled }: Props) {
+export function ShareButton({ cardRef }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function handleShare() {
@@ -45,7 +44,7 @@ export function ShareButton({ cardRef, disabled }: Props) {
   return (
     <button
       onClick={handleShare}
-      disabled={disabled || loading}
+      disabled={loading}
       className="w-full rounded-2xl bg-accent py-3 font-semibold text-white disabled:opacity-40"
     >
       {loading ? "กำลังสร้างรูป..." : "แชร์ 🍌"}

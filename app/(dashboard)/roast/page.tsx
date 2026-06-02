@@ -6,13 +6,12 @@ import { DEFAULT_PERSONA_ID } from "./_lib/personas";
 import { PersonaPicker } from "./_components/PersonaPicker";
 import { RoastButton } from "./_components/RoastButton";
 import { RoastDisplay } from "./_components/RoastDisplay";
-import { QuotePicker } from "./_components/QuotePicker";
 import { ShareCard } from "./_components/ShareCard";
 import { ShareButton } from "./_components/ShareButton";
 
 interface RoastResponse {
   roast: string;
-  quotes: string[];
+  summary: string;
 }
 
 type RateLimitReason = "free_used" | "pro_cooldown" | null;
@@ -21,8 +20,7 @@ export default function RoastPage() {
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
   const [streaming, setStreaming] = useState(false);
   const [roastText, setRoastText] = useState("");
-  const [quotes, setQuotes] = useState<string[]>([]);
-  const [selectedQuote, setSelectedQuote] = useState<number | null>(null);
+  const [summary, setSummary] = useState("");
   const [rateLimitReason, setRateLimitReason] = useState<RateLimitReason>(null);
   const [nextAvailableAt, setNextAvailableAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,15 +30,17 @@ export default function RoastPage() {
       "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
       "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม",
     ];
-    return `${months[now.getMonth()]} ${now.getFullYear() + 543}`;
+    // Show last month label (review period)
+    const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const lastYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    return `${months[lastMonth]} ${lastYear + 543}`;
   });
   const cardRef = useRef<HTMLDivElement>(null);
 
   async function handleRoast() {
     setStreaming(true);
     setRoastText("");
-    setQuotes([]);
-    setSelectedQuote(null);
+    setSummary("");
     setError(null);
     setRateLimitReason(null);
     setNextAvailableAt(null);
@@ -69,8 +69,8 @@ export default function RoastPage() {
           const { done, value } = await reader.read();
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
-          // Try to extract roast text for progressive display
-          const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\[\s\S])*)"/)
+          // Progressive display of roast text while streaming
+          const roastMatch = accumulated.match(/"roast"\s*:\s*"((?:[^"\\]|\\[\s\S])*)"/);
           if (roastMatch) {
             setRoastText(roastMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"'));
           }
@@ -84,7 +84,7 @@ export default function RoastPage() {
       try {
         const parsed: RoastResponse = JSON.parse(accumulated);
         setRoastText(parsed.roast);
-        setQuotes(parsed.quotes);
+        setSummary(parsed.summary ?? "");
       } catch {
         setError("ไม่สามารถ parse ผลลัพธ์ได้ ลองใหม่อีกครั้ง");
       }
@@ -95,7 +95,7 @@ export default function RoastPage() {
     }
   }
 
-  const showShareSection = quotes.length > 0 && !streaming;
+  const showShareSection = !!summary && !streaming;
 
   return (
     <section className="space-y-4 pb-32">
@@ -123,20 +123,16 @@ export default function RoastPage() {
 
       {showShareSection && (
         <>
-          <QuotePicker
-            quotes={quotes}
-            selected={selectedQuote}
-            onSelect={setSelectedQuote}
+          <div className="glass rounded-2xl p-4 text-sm text-fg-muted leading-relaxed">
+            &ldquo;{summary}&rdquo;
+          </div>
+          <ShareButton cardRef={cardRef} />
+          <ShareCard
+            ref={cardRef}
+            personaId={personaId}
+            summary={summary}
+            monthLabel={monthLabel}
           />
-          <ShareButton cardRef={cardRef} disabled={selectedQuote === null} />
-          {selectedQuote !== null && (
-            <ShareCard
-              ref={cardRef}
-              personaId={personaId}
-              quote={quotes[selectedQuote]}
-              monthLabel={monthLabel}
-            />
-          )}
         </>
       )}
     </section>

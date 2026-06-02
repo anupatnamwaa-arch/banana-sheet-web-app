@@ -6,22 +6,22 @@ import { getPersona } from "../_lib/personas";
 
 interface Props {
   personaId: string;
-  quote: string;
+  summary: string;
   monthLabel: string;
 }
 
-// Fake engagement seeded from the quote so it's stable per roast
-function fakeEngagement(quote: string) {
-  const seed = quote.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+// Fake engagement seeded from the summary so it's stable per roast
+function fakeEngagement(summary: string) {
+  const seed = summary.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const retweets = 10 + (seed % 41);   // 10–50
   const likes = 100 + (seed % 401);    // 100–500
   return { retweets, likes };
 }
 
 export const ShareCard = forwardRef<HTMLDivElement, Props>(
-  ({ personaId, quote, monthLabel }, ref) => {
+  ({ personaId, summary, monthLabel }, ref) => {
     const persona = getPersona(personaId);
-    const { retweets, likes } = fakeEngagement(quote);
+    const { retweets, likes } = fakeEngagement(summary);
     const now = new Date();
     const timeStr = now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 
@@ -91,7 +91,7 @@ export const ShareCard = forwardRef<HTMLDivElement, Props>(
               marginBottom: 16,
             }}
           >
-            &ldquo;{quote}&rdquo;
+            &ldquo;{summary}&rdquo;
           </div>
 
           {/* Timestamp */}
