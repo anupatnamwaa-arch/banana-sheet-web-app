@@ -52,7 +52,7 @@ export default async function AnalyticsPage({
     getAnalyticsData(userId, period, savingsTarget, range, locale),
     dataSupabase
       .from("ai_roasts")
-      .select("id, roast, quotes, persona_id, created_at")
+      .select("id, roast, summary, persona_id, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)

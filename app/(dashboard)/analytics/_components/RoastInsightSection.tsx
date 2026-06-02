@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export interface RoastInsight {
   id: string;
   roast: string;
-  quotes: string[];
+  summary: string | null;
   persona_id: string;
   created_at: string;
 }
@@ -71,41 +71,41 @@ export function RoastInsightSection({ latestRoast }: Props) {
         </span>
       </div>
 
-      {/* Sassy summary quotes */}
-      <div className="space-y-3">
-        {latestRoast.quotes.map((quote, idx) => (
-          <div
-            key={idx}
-            onClick={() => setExpanded(!expanded)}
-            className="group relative flex items-start gap-3 rounded-xl bg-white/[0.02] hover:bg-orange-500/[0.03] border border-white/[0.04] hover:border-orange-500/20 p-3.5 cursor-pointer transition-all duration-300"
-          >
-            <span className="text-lg text-orange-400/60 leading-none">“</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-fg font-medium leading-relaxed group-hover:text-orange-300 transition-colors">
-                {quote}
-              </p>
-            </div>
-            <div className="self-center flex items-center justify-center w-5 h-5 rounded-full bg-white/5 group-hover:bg-orange-500/10 transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`text-fg-muted group-hover:text-orange-400 transition-transform duration-300 ${
-                  expanded ? "rotate-180" : ""
-                }`}
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
+      {/* Summary sentence */}
+      {latestRoast.summary && (
+        <div
+          onClick={() => setExpanded(!expanded)}
+          className={[
+            'group relative flex items-start gap-3 rounded-xl',
+            'bg-white/[0.02] hover:bg-orange-500/[0.03]',
+            'border border-white/[0.04] hover:border-orange-500/20',
+            'p-3.5 cursor-pointer transition-all duration-300',
+          ].join(' ')}
+        >
+          <span className='text-lg text-orange-400/60 leading-none'>{'“'}</span>
+          <div className='flex-1 min-w-0'>
+            <p className='text-sm text-fg font-medium leading-relaxed group-hover:text-orange-300 transition-colors'>
+              {latestRoast.summary}
+            </p>
           </div>
-        ))}
-      </div>
+          <div className='self-center flex items-center justify-center w-5 h-5 rounded-full bg-white/5 group-hover:bg-orange-500/10 transition-colors'>
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              width={12}
+              height={12}
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth={2.5}
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              className={`text-fg-muted group-hover:text-orange-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            >
+              <path d='m6 9 6 6 6-6' />
+            </svg>
+          </div>
+        </div>
+      )}
 
       {/* Main Historical Paragraph (Expanded) */}
       <AnimatePresence initial={false}>
