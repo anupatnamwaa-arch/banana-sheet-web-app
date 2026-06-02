@@ -22,7 +22,7 @@ export default async function OverviewPage() {
   // Load profile — display name + emergency goal target + pro status
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("display_name, emergency_months, is_active, plan_type, plan_expires_at")
+    .select("display_name, emergency_months, is_active, plan_type, plan_expires_at, api_key")
     .eq("id", userId)
     .single();
 
@@ -32,6 +32,7 @@ export default async function OverviewPage() {
     is_active: boolean;
     plan_type: string | null;
     plan_expires_at: string | null;
+    api_key: string | null;
   } | null;
 
   const displayName =
@@ -42,6 +43,7 @@ export default async function OverviewPage() {
 
   const targetMonths = profile?.emergency_months ?? 6;
   const isPro = profile ? isActive(profile as Parameters<typeof isActive>[0]) : false;
+  const apiKey = profile?.api_key ?? null;
 
   const locale = await getLocale();
 
@@ -80,7 +82,7 @@ export default async function OverviewPage() {
 
       <EmergencyRunwayCard data={overview.runway} targetMonths={targetMonths} />
 
-      <UserOnboarding />
+      <UserOnboarding apiKey={apiKey} />
     </section>
   );
 }

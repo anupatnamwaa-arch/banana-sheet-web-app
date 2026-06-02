@@ -3,13 +3,26 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, Check } from "lucide-react";
+import { X, ArrowRight, Check, Eye, EyeOff, Copy } from "lucide-react";
 import { useLocale } from "@/lib/i18n/LanguageProvider";
 
-export function UserOnboarding() {
+export function UserOnboarding({ apiKey }: { apiKey: string | null }) {
   const locale = useLocale();
   const [visible, setVisible] = useState(() => !localStorage.getItem("banana_onboarded"));
   const [step, setStep] = useState(0);
+  const [keyRevealed, setKeyRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (!apiKey) return;
+    navigator.clipboard.writeText(apiKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function maskedKey(key: string) {
+    return key.length > 8 ? `${key.slice(0, 4)}••••••••${key.slice(-4)}` : "••••••••";
+  }
 
   const handleDismiss = () => {
     localStorage.setItem("banana_onboarded", "true");
@@ -48,6 +61,14 @@ export function UserOnboarding() {
       descEn: "Pro-tip: Swipe left on any transaction row to delete it, or swipe right to duplicate it instantly. Try it on the Transactions tab!",
       descTh: "เคล็ดลับฉบับโปร! ในหน้ารายการธุรกรรม ลอง 'ปัดซ้าย' เพื่อลบ หรือ 'ปัดขวา' เพื่อทำซ้ำรายการได้สะดวกรวดเร็วทันใจ!",
       color: "from-blue-400/20 to-indigo-500/5",
+    },
+    {
+      emoji: "⚡",
+      titleEn: "Set Up 1-Tap Logging",
+      titleTh: "ตั้งค่าบันทึกด้วย 1 แตะ",
+      descEn: "Download the iOS Shortcut and paste your API key to log expenses from your home screen in seconds.",
+      descTh: "ดาวน์โหลด iOS Shortcut แล้ววาง API Key เพื่อบันทึกรายจ่ายจากหน้าจอหลักได้ในพริบตา",
+      color: "from-sky-400/20 to-blue-500/5",
     },
   ];
 
@@ -102,14 +123,81 @@ export function UserOnboarding() {
           </div>
 
           {/* Texts */}
-          <div className="space-y-2 px-1">
-            <h3 className="text-xl font-bold text-fg tracking-tight min-h-[28px]">
-              {locale === "en" ? current.titleEn : current.titleTh}
-            </h3>
-            <p className="text-sm leading-relaxed text-fg-muted min-h-[80px]">
-              {locale === "en" ? current.descEn : current.descTh}
-            </p>
-          </div>
+          {step < 4 ? (
+            <div className="space-y-2 px-1">
+              <h3 className="text-xl font-bold text-fg tracking-tight min-h-[28px]">
+                {locale === "en" ? current.titleEn : current.titleTh}
+              </h3>
+              <p className="text-sm leading-relaxed text-fg-muted min-h-[80px]">
+                {locale === "en" ? current.descEn : current.descTh}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 px-1 text-left">
+              <h3 className="text-lg font-bold text-fg tracking-tight text-center">
+                {locale === "en" ? current.titleEn : current.titleTh}
+              </h3>
+
+              {/* Download button */}
+              <a
+                href="https://www.icloud.com/shortcuts/8f37603076674ec4b74c0fb1daf2f5ff"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full rounded-2xl bg-accent py-3 text-sm font-bold text-black shadow-[0_4px_12px_var(--color-accent-shadow)] active:scale-[0.98] transition-all"
+              >
+                <span>📥</span>
+                <span>{locale === "en" ? "Download iOS Shortcut" : "ดาวน์โหลด iOS Shortcut"}</span>
+              </a>
+
+              {/* API Key */}
+              {apiKey ? (
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-3 py-2.5 flex items-center gap-2">
+                  <span className="flex-1 font-mono text-xs text-fg truncate">
+                    {keyRevealed ? apiKey : maskedKey(apiKey)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setKeyRevealed((v) => !v)}
+                    className="text-fg-muted hover:text-fg transition-colors shrink-0"
+                  >
+                    {keyRevealed ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="text-fg-muted hover:text-accent transition-colors shrink-0"
+                  >
+                    {copied ? <Check size={15} className="text-green-400" /> : <Copy size={15} />}
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/settings"
+                  className="block text-center text-xs text-accent underline underline-offset-2"
+                >
+                  {locale === "en" ? "Generate your API key in Settings first →" : "สร้าง API Key ในหน้าตั้งค่าก่อนนะ →"}
+                </a>
+              )}
+
+              {/* Manual guide */}
+              <details className="group rounded-2xl border border-[var(--glass-border)] overflow-hidden">
+                <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-fg-muted flex items-center justify-between">
+                  <span>{locale === "en" ? "Manual setup guide" : "คู่มือตั้งค่าเอง"}</span>
+                  <span className="group-open:rotate-90 transition-transform">▸</span>
+                </summary>
+                <div className="px-3 pb-3 pt-1 font-mono text-[10px] leading-relaxed text-fg-muted bg-[var(--bg-elevated)] space-y-0.5">
+                  <p><span className="text-fg-muted">URL:</span> {typeof window !== "undefined" ? window.location.origin : ""}/api/transactions</p>
+                  <p><span className="text-fg-muted">Method:</span> POST</p>
+                  <p><span className="text-fg-muted">Header:</span> Authorization: Bearer{" "}
+                    <span className="text-accent font-bold">
+                      {locale === "en" ? "paste your API key here" : "วาง api ได้ที่นี่"}
+                    </span>
+                  </p>
+                  <p><span className="text-fg-muted">Body:</span> {"{ \"amount\": …, \"category\": \"Food\", \"type\": \"expense\" }"}</p>
+                </div>
+              </details>
+            </div>
+          )}
 
           {/* Steppers Indicators */}
           <div className="flex gap-1.5 justify-center py-1">
