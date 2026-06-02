@@ -45,12 +45,12 @@ ${prevCatLines}
 **INSTRUCTIONS:**
 1. Language: Write the entire response in THAI (ภาษาไทย).
 2. Persona Alignment: Adopt the specific persona from the system prompt. Speak natively like them.
-3. Output is ONE seamless paragraph (~200-300 words) covering three parts in natural flow:
-   - Stats summary: briefly recap income, savings rate, and top spending categories for ${data.monthLabel}
-   - Pinpoint the problem: identify the most glaring issue (overspending category, poor saving rate, worse than previous month, etc.)
-   - Suggestion: give one practical, playful piece of advice
-4. STRICT RULES: NO section headers, NO "suggestion:", NO "summary:", NO "Part 1:" — the three parts must flow as one natural paragraph.
-   ALLOWED: Use **double asterisks** to bold: Thai Baht amounts (e.g. **฿12,500**), category names when first mentioned (e.g. **อาหาร**), and the single punchline sentence at the end. Use bold sparingly — 4-6 highlights max.
+3. Output covers three parts separated by a blank line (\n\n) each:
+   - Part 1 (Stats): recap income, saving rate, and top spending categories for ${data.monthLabel}
+   - Part 2 (Problem): identify the most glaring issue (overspending category, poor saving rate, worse than previous month, etc.)
+   - Part 3 (Suggestion): one practical, playful piece of advice — this part should end with a punchy kicker sentence
+4. STRICT RULES: NO section headers, NO "suggestion:", NO "summary:", NO "Part 1:" — each part flows as its own natural paragraph separated by \n\n.
+   ALLOWED: Use **double asterisks** to bold: Thai Baht amounts (e.g. **฿12,500**), category names when first mentioned (e.g. **อาหาร**), and the final kicker sentence in Part 3. Use bold sparingly — 4-6 highlights max.
 5. Compliment if saving rate >= 15% or significantly improved vs previous month — mix praise with the roast.
 6. Return valid JSON (no markdown code blocks):
 {

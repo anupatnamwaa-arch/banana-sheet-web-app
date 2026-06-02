@@ -24,6 +24,7 @@ function renderBold(text: string): React.ReactNode[] {
 
 export function RoastDisplay({ personaId, text, streaming }: Props) {
   const persona = getPersona(personaId);
+  const paragraphs = text.split(/\n\n+/);
 
   return (
     <div className="glass space-y-3 rounded-2xl p-4">
@@ -34,12 +35,27 @@ export function RoastDisplay({ personaId, text, streaming }: Props) {
           <p className="text-xs text-fg-muted">{persona.handle}</p>
         </div>
       </div>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-        {renderBold(text)}
-        {streaming && (
-          <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent" />
-        )}
-      </p>
+      <div className="space-y-3">
+        {paragraphs.map((para, i) => {
+          const isLast = i === paragraphs.length - 1;
+          const content = renderBold(para.trim());
+          return (
+            <p
+              key={i}
+              className={`text-sm leading-relaxed ${
+                isLast
+                  ? "border-l-2 border-accent pl-3 text-fg"
+                  : "text-fg-muted"
+              }`}
+            >
+              {content}
+              {streaming && isLast && (
+                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent" />
+              )}
+            </p>
+          );
+        })}
+      </div>
     </div>
   );
 }
