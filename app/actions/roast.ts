@@ -86,11 +86,17 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
 
   // Calculate month windows
   const { year, month } = bangkokToday();
-  const prevMonth = month === 1 ? 12 : month - 1;
-  const prevYear = month === 1 ? year - 1 : year;
 
-  const thisWindow = monthWindow(year, month);
-  const lastWindow = monthWindow(prevYear, prevMonth);
+  // Review period = last month (complete)
+  const reviewMonth = month === 1 ? 12 : month - 1;
+  const reviewYear = month === 1 ? year - 1 : year;
+
+  // Comparison period = two months ago
+  const compMonth = reviewMonth === 1 ? 12 : reviewMonth - 1;
+  const compYear = reviewMonth === 1 ? reviewYear - 1 : reviewYear;
+
+  const thisWindow = monthWindow(reviewYear, reviewMonth);
+  const lastWindow = monthWindow(compYear, compMonth);
 
   // Fetch all transactions across both months in a single query
   const { data: transactions, error: txError } = await supabase
@@ -192,8 +198,8 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
       lastMonthSavings,
       lastMonthSavingRate,
       budgets,
-      monthLabel: `${MONTH_NAMES[month - 1]} ${year + 543}`,
-      lastMonthLabel: `${MONTH_NAMES[prevMonth - 1]} ${prevYear + 543}`,
+      monthLabel: `${MONTH_NAMES[reviewMonth - 1]} ${reviewYear + 543}`,
+      lastMonthLabel: `${MONTH_NAMES[compMonth - 1]} ${compYear + 543}`,
     },
   };
 }
