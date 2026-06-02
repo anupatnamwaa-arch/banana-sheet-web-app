@@ -116,12 +116,16 @@ export async function GET(req: NextRequest) {
           try {
             const parsed = JSON.parse(accumulated);
             if (parsed.roast && typeof parsed.summary === "string") {
-              await supabase.from("ai_roasts").insert({
+              const { error: insertError } = await supabase.from("ai_roasts").insert({
                 user_id: user.id,
                 persona_id: personaId,
                 roast: parsed.roast,
                 summary: parsed.summary,
+                quotes: [],
               });
+              if (insertError) {
+                console.error("Failed to save roast to DB:", insertError.message, insertError.details);
+              }
             }
           } catch (dbErr) {
             console.error("Failed to parse and save generated roast:", dbErr);
