@@ -1,23 +1,28 @@
 // app/(dashboard)/overview/_components/UserOnboarding.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight, Check, Eye, EyeOff, Copy } from "lucide-react";
 import { useLocale } from "@/lib/i18n/LanguageProvider";
 
 export function UserOnboarding({ apiKey }: { apiKey: string | null }) {
   const locale = useLocale();
-  const [visible, setVisible] = useState(() => !localStorage.getItem("banana_onboarded"));
+  const [visible, setVisible] = useState(() => {
+    if (typeof localStorage === "undefined") return true;
+    return !localStorage.getItem("banana_onboarded");
+  });
   const [step, setStep] = useState(0);
   const [keyRevealed, setKeyRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleCopy() {
     if (!apiKey) return;
     navigator.clipboard.writeText(apiKey);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
   }
 
   function maskedKey(key: string) {
@@ -158,6 +163,7 @@ export function UserOnboarding({ apiKey }: { apiKey: string | null }) {
                   <button
                     type="button"
                     onClick={() => setKeyRevealed((v) => !v)}
+                    aria-label={keyRevealed ? "Hide API key" : "Reveal API key"}
                     className="text-fg-muted hover:text-fg transition-colors shrink-0"
                   >
                     {keyRevealed ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -165,6 +171,7 @@ export function UserOnboarding({ apiKey }: { apiKey: string | null }) {
                   <button
                     type="button"
                     onClick={handleCopy}
+                    aria-label={copied ? "Copied" : "Copy API key"}
                     className="text-fg-muted hover:text-accent transition-colors shrink-0"
                   >
                     {copied ? <Check size={15} className="text-green-400" /> : <Copy size={15} />}
