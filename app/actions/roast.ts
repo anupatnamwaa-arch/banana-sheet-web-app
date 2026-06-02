@@ -204,6 +204,29 @@ export async function getRoastData(): Promise<RoastRateLimitResult> {
   };
 }
 
+export interface PastRoast {
+  id: string;
+  persona_id: string;
+  roast: string;
+  summary: string | null;
+  created_at: string;
+}
+
+export async function getPastRoasts(): Promise<PastRoast[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("ai_roasts")
+    .select("id, persona_id, roast, summary, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  return (data ?? []) as PastRoast[];
+}
+
 export async function markRoastUsed(): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
