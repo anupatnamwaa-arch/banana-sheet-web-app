@@ -9,6 +9,19 @@ interface Props {
   streaming: boolean;
 }
 
+function renderBold(text: string): React.ReactNode[] {
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="font-semibold text-accent">
+        {part}
+      </strong>
+    ) : (
+      part
+    )
+  );
+}
+
 export function RoastDisplay({ personaId, text, streaming }: Props) {
   const persona = getPersona(personaId);
 
@@ -22,7 +35,7 @@ export function RoastDisplay({ personaId, text, streaming }: Props) {
         </div>
       </div>
       <p className="whitespace-pre-wrap text-sm leading-relaxed">
-        {text}
+        {renderBold(text)}
         {streaming && (
           <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent" />
         )}

@@ -49,7 +49,8 @@ ${prevCatLines}
    - Stats summary: briefly recap income, savings rate, and top spending categories for ${data.monthLabel}
    - Pinpoint the problem: identify the most glaring issue (overspending category, poor saving rate, worse than previous month, etc.)
    - Suggestion: give one practical, playful piece of advice
-4. STRICT RULES: NO section headers, NO bold labels, NO "suggestion:", NO "summary:", NO "Part 1:" — the three parts must flow as one natural paragraph.
+4. STRICT RULES: NO section headers, NO "suggestion:", NO "summary:", NO "Part 1:" — the three parts must flow as one natural paragraph.
+   ALLOWED: Use **double asterisks** to bold: Thai Baht amounts (e.g. **฿12,500**), category names when first mentioned (e.g. **อาหาร**), and the single punchline sentence at the end. Use bold sparingly — 4-6 highlights max.
 5. Compliment if saving rate >= 15% or significantly improved vs previous month — mix praise with the roast.
 6. Return valid JSON (no markdown code blocks):
 {
