@@ -1,25 +1,28 @@
-// app/paywall/_components/PaywallClient.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { motion } from "framer-motion";
 import {
-  ChevronLeft,
-  Sparkles,
-  Check,
-  Copy,
-  Upload,
-  Image as ImageIcon,
   AlertTriangle,
+  Check,
+  ChevronLeft,
+  Copy,
   Loader2,
+  Sparkles,
   Ticket,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  AtelierCard,
+  AtelierShell,
+  BananaGuide,
+  type BananaGuidePose,
+} from "@/app/_components/atelier";
+import { redeemPromoCode, submitPaymentSlip } from "@/app/actions/paywall";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/LanguageProvider";
-import { redeemPromoCode, submitPaymentSlip } from "@/app/actions/paywall";
 
 interface Props {
   userId: string;
@@ -32,7 +35,6 @@ interface Props {
 
 export function PaywallClient({
   userId,
-  userEmail,
   initialIsPro,
   initialPlanType,
   initialExpiresAt,
@@ -40,34 +42,24 @@ export function PaywallClient({
 }: Props) {
   const t = useT();
   const router = useRouter();
-
-  // Pricing & plans
   const [selectedPlan, setSelectedPlan] = useState<"yearly" | "monthly">("yearly");
-
-  // Promo code states
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
-
-  // Slip upload states
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [slipLoading, setSlipLoading] = useState(false);
   const [slipError, setSlipError] = useState<string | null>(null);
   const [slipSuccess, setSlipSuccess] = useState<string | null>(null);
   const [pendingSlip, setPendingSlip] = useState(initialPendingSlip);
-
-  // Clipboard copy feedback
   const [copiedPromptPayId, setCopiedPromptPayId] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
-
-  // PromptPay configuration
   const promptPayId = process.env.NEXT_PUBLIC_PROMPTPAY_ID || "0830491029";
   const amount = selectedPlan === "yearly" ? 399 : 39;
   const qrCodeUrl = `https://promptpay.io/${promptPayId}/${amount}.png`;
+  const guidePose: BananaGuidePose = initialIsPro || promoSuccess ? "celebrate" : pendingSlip?.status === "pending" ? "waiting" : pendingSlip?.status === "rejected" ? "retry" : "helpful";
 
-  // Drag and drop setup
   const onDrop = useCallback(async (files: File[]) => {
     const f = files[0];
     if (!f) return;
@@ -86,7 +78,6 @@ export function PaywallClient({
     multiple: false,
   });
 
-  // Action: Promo Code Redemption
   async function handleRedeemPromo() {
     if (!promoCode.trim()) return;
     setPromoLoading(true);
@@ -108,7 +99,6 @@ export function PaywallClient({
     }
   }
 
-  // Action: Slip Upload Submit
   async function handleUploadSlip() {
     if (!file) return;
     setSlipLoading(true);
@@ -119,15 +109,10 @@ export function PaywallClient({
       const ext = file.name.split(".").pop() ?? "jpg";
       const filename = `${Date.now()}_slip.${ext}`;
       const storagePath = `${userId}/${filename}`;
-
-      // Upload file to the storage bucket
       const { error: uploadErr } = await supabase.storage
         .from("payment-slips")
         .upload(storagePath, file, { contentType: file.type });
-
       if (uploadErr) throw new Error(uploadErr.message);
-
-      // Trigger the server action to save record and notify the Telegram bot
       const res = await submitPaymentSlip(selectedPlan, storagePath);
       if (res.success) {
         setSlipSuccess(t.paywall.slipSuccess);
@@ -159,315 +144,136 @@ export function PaywallClient({
     setTimeout(() => setCopiedAmount(false), 2000);
   }
 
+  const planCard = (plan: "yearly" | "monthly") => {
+    const selected = selectedPlan === plan;
+    return (
+      <button
+        type="button"
+        onClick={() => setSelectedPlan(plan)}
+        className={`relative w-full rounded-2xl border p-5 text-left transition-all active:scale-[0.99] ${
+          selected
+            ? "border-accent bg-accent/10 ring-1 ring-accent"
+            : "border-[var(--atelier-line)] bg-[var(--atelier-paper)] hover:border-[var(--atelier-olive)]"
+        }`}
+      >
+        {plan === "yearly" && (
+          <span className="absolute right-4 top-4 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+            {t.paywall.bestValue}
+          </span>
+        )}
+        <span className="flex items-center gap-3">
+          <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${selected ? "border-accent" : "border-[var(--atelier-olive)]"}`}>
+            {selected && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+          </span>
+          <span>
+            <span className="block text-base font-bold">{plan === "yearly" ? t.paywall.yearlyPlan : t.paywall.monthlyPlan}</span>
+            <span className="mt-0.5 block text-xs text-fg-muted">{plan === "yearly" ? t.paywall.yearlyUnit : t.paywall.monthlyUnit}</span>
+          </span>
+        </span>
+        <span className="mt-4 block font-mono text-2xl font-bold text-accent">{plan === "yearly" ? t.paywall.yearlyPrice : t.paywall.monthlyPrice}</span>
+      </button>
+    );
+  };
+
   return (
-    <main className="flex min-h-dvh flex-col bg-[var(--bg)] px-4 py-8 md:px-8 max-w-4xl mx-auto space-y-6">
-      {/* 🟢 Navigation Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/settings"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] border border-[var(--glass-border)] text-fg transition-opacity hover:opacity-90 active:scale-95"
-          aria-label={t.paywall.backBtn}
-        >
+    <AtelierShell contentClassName="max-w-6xl">
+      <header className="mb-6 flex items-center gap-4">
+        <Link href="/settings" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--atelier-line)] bg-[var(--atelier-surface)] transition-opacity hover:opacity-80" aria-label={t.paywall.backBtn}>
           <ChevronLeft size={20} />
         </Link>
         <div>
           <h1 className="text-xl font-bold tracking-tight">{t.paywall.title}</h1>
           <p className="text-xs text-fg-muted">{t.paywall.subtitle}</p>
         </div>
-      </div>
+      </header>
 
-      {/* Already Active Pro Info */}
-      {initialIsPro && (
-        <div className="rounded-[var(--radius-card)] bg-accent/10 border border-accent/30 p-5 text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent/20 text-accent">
-            <Sparkles size={24} />
-          </div>
-          <h2 className="text-lg font-bold text-accent">Banana Sheet Pro Active</h2>
-          <p className="text-sm text-fg-muted max-w-md mx-auto">
+      {initialIsPro ? (
+        <AtelierCard className="atelier-card-arrive mx-auto max-w-2xl p-6 text-center">
+          <BananaGuide pose={guidePose} className="mx-auto mb-2 h-28 w-28" />
+          <Sparkles size={24} className="mx-auto text-accent" />
+          <h2 className="mt-2 text-lg font-bold text-accent">Banana Sheet Pro Active</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-fg-muted">
             You are currently upgraded to Pro. Active plan:{" "}
-            <strong>
-              {initialPlanType === "lifetime"
-                ? "Lifetime"
-                : initialPlanType === "yearly"
-                ? "Yearly"
-                : "Monthly"}
-            </strong>
+            <strong>{initialPlanType === "lifetime" ? "Lifetime" : initialPlanType === "yearly" ? "Yearly" : "Monthly"}</strong>
             {initialExpiresAt && ` (Expires on ${new Date(initialExpiresAt).toLocaleDateString()})`}
           </p>
-        </div>
-      )}
-
-      {/* 🔴 Paywall Checkout Area */}
-      {!initialIsPro && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* LEFT COLUMN: Gated Features list & Plan Picker */}
-          <div className="space-y-6">
-            {/* Interactive Plans */}
-            <div className="space-y-3">
-              {/* Plan 1: Yearly */}
-              <button
-                type="button"
-                onClick={() => setSelectedPlan("yearly")}
-                className={`relative w-full rounded-[var(--radius-card)] border p-5 text-left transition-all active:scale-[0.99] cursor-pointer ${
-                  selectedPlan === "yearly"
-                    ? "border-accent bg-accent/5 ring-1 ring-accent"
-                    : "border-[var(--glass-border)] bg-[var(--bg-elevated)] hover:border-[var(--glass-border)]/80"
-                }`}
-              >
-                <div className="absolute top-4 right-4 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold text-black uppercase tracking-wider">
-                  {t.paywall.bestValue}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                      selectedPlan === "yearly"
-                        ? "border-accent text-accent"
-                        : "border-fg-muted"
-                    }`}
-                  >
-                    {selectedPlan === "yearly" && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
-                  </span>
+        </AtelierCard>
+      ) : (
+        <>
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(22rem,1.06fr)]">
+            <div className="space-y-6">
+              <AtelierCard className="atelier-card-arrive p-6">
+                <div className="flex items-center gap-4">
+                  <BananaGuide pose={guidePose} className="h-28 w-28 shrink-0" />
                   <div>
-                    <h3 className="font-bold text-base">{t.paywall.yearlyPlan}</h3>
-                    <p className="text-xs text-fg-muted mt-0.5">{t.paywall.yearlyUnit}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--atelier-olive)]">Banana Atelier</p>
+                    <h2 className="mt-2 text-xl font-bold">{t.paywall.title}</h2>
+                    <p className="mt-2 text-sm text-fg-muted">{t.paywall.subtitle}</p>
                   </div>
                 </div>
-                <p className="mt-4 font-mono text-2xl font-bold text-accent">
-                  {t.paywall.yearlyPrice}
-                </p>
-              </button>
-
-              {/* Plan 2: Monthly */}
-              <button
-                type="button"
-                onClick={() => setSelectedPlan("monthly")}
-                className={`w-full rounded-[var(--radius-card)] border p-5 text-left transition-all active:scale-[0.99] cursor-pointer ${
-                  selectedPlan === "monthly"
-                    ? "border-accent bg-accent/5 ring-1 ring-accent"
-                    : "border-[var(--glass-border)] bg-[var(--bg-elevated)] hover:border-[var(--glass-border)]/80"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                      selectedPlan === "monthly"
-                        ? "border-accent text-accent"
-                        : "border-fg-muted"
-                    }`}
-                  >
-                    {selectedPlan === "monthly" && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
-                  </span>
-                  <div>
-                    <h3 className="font-bold text-base">{t.paywall.monthlyPlan}</h3>
-                    <p className="text-xs text-fg-muted mt-0.5">{t.paywall.monthlyUnit}</p>
-                  </div>
-                </div>
-                <p className="mt-4 font-mono text-2xl font-bold text-accent">
-                  {t.paywall.monthlyPrice}
-                </p>
-              </button>
+              </AtelierCard>
+              <div className="space-y-3">{planCard("yearly")}{planCard("monthly")}</div>
+              <AtelierCard className="p-5">
+                <h3 className="text-sm font-bold uppercase tracking-wide">{t.paywall.featuresTitle}</h3>
+                <ul className="mt-4 space-y-3 text-sm text-fg-muted">
+                  {t.paywall.featuresList.map((feature: string) => <li key={feature} className="flex items-start gap-2.5"><Check size={16} className="mt-0.5 shrink-0 text-accent" /><span>{feature}</span></li>)}
+                </ul>
+              </AtelierCard>
             </div>
 
-            {/* Premium Features List */}
-            <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] border border-[var(--glass-border)] p-5 space-y-4">
-              <h3 className="font-bold text-sm text-fg uppercase tracking-wide">
-                {t.paywall.featuresTitle}
-              </h3>
-              <ul className="space-y-3 text-sm text-fg-muted">
-                {t.paywall.featuresList.map((feature: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    <span className="shrink-0 text-accent font-semibold">✓</span>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Payment QR and Slip Upload */}
-          <div className="space-y-6">
-            {/* Dynamic PromptPay QR */}
-            <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] border border-[var(--glass-border)] p-6 flex flex-col items-center text-center space-y-4 shadow-md">
-              <h3 className="font-bold text-sm uppercase tracking-wide text-accent flex items-center gap-1.5">
-                💳 {t.paywall.promptpayTitle}
-              </h3>
-              <p className="text-xs text-fg-muted">
-                {t.paywall.promptpayInstruction}
-              </p>
-
-              {/* Gorgeous QR image display with a premium glass border frame */}
-              <div className="relative rounded-2xl overflow-hidden bg-white p-4 border border-[var(--glass-border)] shadow-inner">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrCodeUrl}
-                  alt="PromptPay QR Code"
-                  className="h-44 w-44 object-contain"
-                />
-              </div>
-
-              {/* Interactive payment data details */}
-              <div className="w-full space-y-2 text-sm pt-2">
-                {/* PromptPay ID copy */}
-                <div className="flex items-center justify-between rounded-xl bg-[var(--bg)] px-3 py-2.5 border border-[var(--glass-border)]/50">
-                  <div className="text-left">
-                    <p className="text-[10px] text-fg-muted uppercase font-bold tracking-wide">PromptPay ID</p>
-                    <p className="font-mono text-sm font-semibold">{promptPayId}</p>
+            <div className="space-y-6">
+              <AtelierCard className="flex flex-col items-center space-y-4 p-6 text-center">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-accent">{t.paywall.promptpayTitle}</h3>
+                <p className="text-xs text-fg-muted">{t.paywall.promptpayInstruction}</p>
+                <div className="overflow-hidden rounded-2xl border border-[var(--atelier-line)] bg-white p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrCodeUrl} alt="PromptPay QR Code" className="h-44 w-44 object-contain" />
+                </div>
+                <div className="w-full space-y-2 pt-2 text-sm">
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--atelier-line)] bg-[var(--atelier-paper)] px-3 py-2.5">
+                    <div className="text-left"><p className="text-[10px] font-bold uppercase tracking-wide text-fg-muted">PromptPay ID</p><p className="font-mono text-sm font-semibold">{promptPayId}</p></div>
+                    <button type="button" onClick={handleCopyPromptPayId} aria-label="Copy PromptPay ID" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--atelier-surface)] transition-opacity hover:opacity-80">{copiedPromptPayId ? <Check size={14} className="text-accent" /> : <Copy size={14} />}</button>
                   </div>
-                  <button
-                    onClick={handleCopyPromptPayId}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--glass-bg)] active:scale-95 transition-all text-fg"
-                  >
-                    {copiedPromptPayId ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
-                  </button>
-                </div>
-
-                {/* Amount copy */}
-                <div className="flex items-center justify-between rounded-xl bg-[var(--bg)] px-3 py-2.5 border border-[var(--glass-border)]/50">
-                  <div className="text-left">
-                    <p className="text-[10px] text-fg-muted uppercase font-bold tracking-wide">Amount (THB)</p>
-                    <p className="font-mono text-base font-bold text-accent">฿{amount}.00</p>
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--atelier-line)] bg-[var(--atelier-paper)] px-3 py-2.5">
+                    <div className="text-left"><p className="text-[10px] font-bold uppercase tracking-wide text-fg-muted">Amount (THB)</p><p className="font-mono text-base font-bold text-accent">{amount}.00 THB</p></div>
+                    <button type="button" onClick={handleCopyAmount} aria-label="Copy amount" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--atelier-surface)] transition-opacity hover:opacity-80">{copiedAmount ? <Check size={14} className="text-accent" /> : <Copy size={14} />}</button>
                   </div>
-                  <button
-                    onClick={handleCopyAmount}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--glass-bg)] active:scale-95 transition-all text-fg"
-                  >
-                    {copiedAmount ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
-                  </button>
                 </div>
-              </div>
-            </div>
+              </AtelierCard>
 
-            {/* Slip Upload Card */}
-            <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] border border-[var(--glass-border)] p-6 space-y-4">
-              <h3 className="font-bold text-sm uppercase tracking-wide text-fg">
-                📸 {t.paywall.uploadTitle}
-              </h3>
-
-              {/* Status display if a slip is currently pending or rejected */}
-              {pendingSlip && pendingSlip.status === "pending" && (
-                <div className="rounded-xl bg-accent/15 border border-accent/25 p-4 text-center space-y-2">
-                  <p className="text-sm font-semibold text-accent flex items-center justify-center gap-1.5">
-                    🕒 {t.paywall.pendingSlipTitle}
-                  </p>
-                  <p className="text-xs text-fg-muted leading-relaxed">
-                    {t.paywall.pendingSlipDesc}
-                  </p>
-                </div>
-              )}
-
-              {pendingSlip && pendingSlip.status === "rejected" && (
-                <div className="rounded-xl bg-negative/10 border border-negative/25 p-4 text-center space-y-2">
-                  <p className="text-sm font-semibold text-negative flex items-center justify-center gap-1.5">
-                    ⚠️ {t.paywall.rejectedSlipTitle}
-                  </p>
-                  <p className="text-xs text-fg-muted leading-relaxed">
-                    {t.paywall.rejectedSlipDesc}
-                  </p>
-                </div>
-              )}
-
-              {/* Upload Success Alert */}
-              {slipSuccess && (
-                <div className="rounded-xl bg-accent/10 border border-accent/25 p-4 text-xs text-accent text-center">
-                  {slipSuccess}
-                </div>
-              )}
-
-              {/* Main drag & drop file target area */}
-              {(!pendingSlip || pendingSlip.status === "rejected") && !slipSuccess && (
-                <>
-                  <div
-                    {...getRootProps()}
-                    className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
-                      isDragActive
-                        ? "border-accent bg-accent/5"
-                        : "border-[var(--glass-border)] hover:border-[var(--glass-border)]/80"
-                    }`}
-                  >
+              <AtelierCard className="space-y-4 p-6">
+                <h3 className="text-sm font-bold uppercase tracking-wide">{t.paywall.uploadTitle}</h3>
+                {pendingSlip?.status === "pending" && <div aria-live="polite" className="rounded-xl border border-accent/25 bg-accent/15 p-4 text-center"><p className="text-sm font-semibold text-accent">{t.paywall.pendingSlipTitle}</p><p className="mt-2 text-xs leading-relaxed text-fg-muted">{t.paywall.pendingSlipDesc}</p></div>}
+                {pendingSlip?.status === "rejected" && <div role="alert" className="rounded-xl border border-negative/25 bg-negative/10 p-4 text-center"><p className="text-sm font-semibold text-negative">{t.paywall.rejectedSlipTitle}</p><p className="mt-2 text-xs leading-relaxed text-fg-muted">{t.paywall.rejectedSlipDesc}</p></div>}
+                {slipSuccess && <div aria-live="polite" className="rounded-xl border border-accent/25 bg-accent/10 p-4 text-center text-xs text-accent">{slipSuccess}</div>}
+                {(!pendingSlip || pendingSlip.status === "rejected") && !slipSuccess && <>
+                  <div {...getRootProps()} className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${isDragActive ? "border-accent bg-accent/5" : "border-[var(--atelier-line)] hover:border-[var(--atelier-olive)]"}`}>
                     <input {...getInputProps()} />
                     {previewUrl ? (
-                      <div className="relative mx-auto h-32 w-24 overflow-hidden rounded-xl border border-[var(--glass-border)]">
+                      <div className="mx-auto h-32 w-24 overflow-hidden rounded-xl border border-[var(--atelier-line)]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={previewUrl}
-                          alt="Transfer slip preview"
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={previewUrl} alt="Transfer slip preview" className="h-full w-full object-cover" />
                       </div>
-                    ) : (
-                      <>
-                        <Upload size={24} className="mx-auto mb-2 text-fg-muted" />
-                        <p className="text-xs font-semibold">{t.paywall.uploadInstruction}</p>
-                      </>
-                    )}
+                    ) : <><Upload size={24} className="mx-auto mb-2 text-fg-muted" /><p className="text-xs font-semibold">{t.paywall.uploadInstruction}</p></>}
                   </div>
-
-                  {slipError && (
-                    <div className="flex gap-2 rounded-xl bg-negative/10 p-3 text-xs text-negative">
-                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                      <span>{slipError}</span>
-                    </div>
-                  )}
-
-                  {file && (
-                    <button
-                      onClick={handleUploadSlip}
-                      disabled={slipLoading}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-semibold text-black hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {slipLoading && <Loader2 size={16} className="animate-spin" />}
-                      {slipLoading ? t.paywall.submitLoading.split(" & ")[0] : t.paywall.submitBtn}
-                    </button>
-                  )}
-                </>
-              )}
+                  {slipError && <div role="alert" className="flex gap-2 rounded-xl bg-negative/10 p-3 text-xs text-negative"><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{slipError}</span></div>}
+                  {file && <button type="button" onClick={handleUploadSlip} disabled={slipLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50">{slipLoading && <Loader2 size={16} className="animate-spin" />}{slipLoading ? t.paywall.submitLoading.split(" & ")[0] : t.paywall.submitBtn}</button>}
+                </>}
+              </AtelierCard>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* 🏷️ DISCOUNT CODE DRAWER / CARD */}
-      {!initialIsPro && (
-        <div className="rounded-[var(--radius-card)] bg-[var(--bg-elevated)] border border-[var(--glass-border)] p-6 space-y-4 max-w-lg mx-auto w-full">
-          <h3 className="font-bold text-sm uppercase tracking-wide text-fg flex items-center gap-1.5">
-            <Ticket size={16} className="text-accent" />
-            {t.paywall.promoTitle}
-          </h3>
-
-          <div className="flex gap-3">
-            <input
-              type="text"
-              placeholder={t.paywall.promoPlaceholder}
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              disabled={promoLoading || !!promoSuccess}
-              className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg)] px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent disabled:opacity-50 font-mono"
-            />
-            <button
-              onClick={handleRedeemPromo}
-              disabled={promoLoading || !promoCode.trim() || !!promoSuccess}
-              className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-black hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center gap-2"
-            >
-              {promoLoading && <Loader2 size={14} className="animate-spin" />}
-              {promoLoading ? t.paywall.promoLoading : t.paywall.promoBtn}
-            </button>
-          </div>
-
-          {/* Success / Error feedbacks */}
-          {promoError && (
-            <div className="flex gap-2 rounded-xl bg-negative/10 p-3 text-xs text-negative">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <span>{promoError}</span>
+          <AtelierCard className="mx-auto mt-6 w-full max-w-lg space-y-4 p-6">
+            <h3 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide"><Ticket size={16} className="text-accent" />{t.paywall.promoTitle}</h3>
+            <div className="flex gap-3">
+              <input type="text" placeholder={t.paywall.promoPlaceholder} value={promoCode} onChange={(event) => setPromoCode(event.target.value.toUpperCase())} disabled={promoLoading || !!promoSuccess} className="min-w-0 flex-1 rounded-xl border border-[var(--atelier-line)] bg-[var(--atelier-paper)] px-4 py-2.5 font-mono text-sm outline-none transition-colors focus:border-accent disabled:opacity-50" />
+              <button type="button" onClick={handleRedeemPromo} disabled={promoLoading || !promoCode.trim() || !!promoSuccess} className="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50">{promoLoading && <Loader2 size={14} className="animate-spin" />}{promoLoading ? t.paywall.promoLoading : t.paywall.promoBtn}</button>
             </div>
-          )}
-
-          {promoSuccess && (
-            <div className="rounded-xl bg-accent/15 border border-accent/25 p-3 text-xs text-accent text-center font-medium">
-              {promoSuccess}
-            </div>
-          )}
-        </div>
+            {promoError && <div role="alert" className="flex gap-2 rounded-xl bg-negative/10 p-3 text-xs text-negative"><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{promoError}</span></div>}
+            {promoSuccess && <div aria-live="polite" className="rounded-xl border border-accent/25 bg-accent/15 p-3 text-center text-xs font-medium text-accent">{promoSuccess}</div>}
+          </AtelierCard>
+        </>
       )}
-    </main>
+    </AtelierShell>
   );
 }

@@ -29,6 +29,13 @@ export interface PeriodWindow {
   lengthDays: number;
 }
 
+export function hasTransactionsInWindow(
+  rows: Array<{ date: string }>,
+  window: Pick<PeriodWindow, "start" | "end">
+): boolean {
+  return rows.some((row) => row.date >= window.start && row.date < window.end);
+}
+
 export function normalizePeriod(raw?: string): AnalyticsPeriod {
   return (ANALYTICS_PERIODS.find((p) => p.id === raw)?.id ?? "month") as AnalyticsPeriod;
 }

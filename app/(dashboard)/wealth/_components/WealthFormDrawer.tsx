@@ -1,13 +1,15 @@
 // app/(dashboard)/wealth/_components/WealthFormDrawer.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, AlertTriangle, Droplet } from "lucide-react";
-import { addWealth, updateWealth, deleteWealth } from "@/app/actions/wealth";
-import type { WealthPayload } from "@/app/actions/wealth";
+import { addWealthWithHistory, updateWealthWithHistory, deleteWealth } from "@/app/actions/wealth";
+import type { WealthPayload, HistoricalSnapshotPayload } from "@/app/actions/wealth";
 import type { WealthType } from "@/lib/types";
 import { useT } from "@/lib/i18n/LanguageProvider";
+import { createClient } from "@/lib/supabase/client";
+import { bangkokToday } from "@/app/actions/overview-utils";
 
 export interface WealthRow {
   id: string;
@@ -27,6 +29,23 @@ interface Props {
   onSuccess: () => void;
 }
 
+// Generate Bangkok months from 2024-01 up to the current Bangkok month
+function generateMonthsList(): string[] {
+  const { year, month } = bangkokToday();
+  const list: string[] = [];
+  let cy = 2024;
+  let cm = 1;
+  while (cy < year || (cy === year && cm <= month)) {
+    list.push(`${cy}-${String(cm).padStart(2, "0")}`);
+    cm++;
+    if (cm > 12) {
+      cm = 1;
+      cy++;
+    }
+  }
+  return list.reverse(); // Show most recent month first
+}
+
 export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }: Props) {
   const t = useT();
   const [name, setName] = useState(item?.name ?? "");
@@ -40,6 +59,97 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Historical values state: [{ month: "YYYY-MM", value: "123.45" }]
+  const [history, setHistory] = useState<Array<{ month: string; value: string }>>(() => {
+    if (mode === "edit") return [];
+    const { year, month } = bangkokToday();
+    return [{ month: `${year}-${String(month).padStart(2, "0")}`, value: "" }];
+  });
+  const [fetchingHistory, setFetchingHistory] = useState(mode === "edit" && !!item);
+
+  // Fetch historical values on edit mode mount
+  useEffect(() => {
+    if (mode !== "edit" || !item) return;
+    const supabase = createClient();
+    supabase
+      .from("wealth_item_snapshots")
+      .select("month, value")
+      .eq("item_id", item.id)
+      .order("month", { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setHistory(
+            data.map((h) => ({
+              month: h.month,
+              value: String(h.value),
+            }))
+          );
+        }
+        setFetchingHistory(false);
+      });
+  }, [mode, item]);
+
+  function syncValueToCurrentMonth(val: string) {
+    const { year, month } = bangkokToday();
+    const currentMonthKey = `${year}-${String(month).padStart(2, "0")}`;
+    setHistory((prev) => {
+      const idx = prev.findIndex((h) => h.month === currentMonthKey);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], value: val };
+      return next;
+    });
+  }
+
+  function formatMonthKey(ym: string): string {
+    const [y, m] = ym.split("-").map(Number);
+    const shortMonths = [
+      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    const isTh = t.calendar.yearOffset === 543;
+    return isTh
+      ? `${shortMonths[m - 1]} ${y + 543}`
+      : `${new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-US", { month: "short" })} ${y}`;
+  }
+
+  function handleHistoryValueChange(index: number, val: string) {
+    setHistory((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], value: val };
+      
+      // If updating the current month, sync back to main value
+      const { year, month } = bangkokToday();
+      const currentMonthKey = `${year}-${String(month).padStart(2, "0")}`;
+      if (next[index].month === currentMonthKey) {
+        setValue(val);
+      }
+      
+      return next;
+    });
+  }
+
+  function handleAddMonth() {
+    const list = generateMonthsList();
+    const usedMonths = new Set(history.map((h) => h.month));
+    const firstAvailable = list.find((m) => !usedMonths.has(m));
+    if (!firstAvailable) return; // All months are filled
+
+    setHistory((prev) => [...prev, { month: firstAvailable, value: "" }].sort((a, b) => b.month.localeCompare(a.month)));
+  }
+
+  function handleMonthSelect(index: number, newMonth: string) {
+    setHistory((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], month: newMonth };
+      return next.sort((a, b) => b.month.localeCompare(a.month));
+    });
+  }
+
+  function handleRemoveMonth(index: number) {
+    setHistory((prev) => prev.filter((_, i) => i !== index));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,9 +167,21 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
       monthly_payment: type === "liability" && mp > 0 ? mp : null,
       due_date: type === "liability" && dueDate ? dueDate : null,
     };
+
+    // Filter and build history list
+    const historyPayload: HistoricalSnapshotPayload[] = history
+      .map((h) => ({
+        month: h.month,
+        value: parseFloat(h.value),
+      }))
+      .filter((h) => !isNaN(h.value) && h.value >= 0);
+
     try {
-      if (mode === "add") await addWealth(payload);
-      else await updateWealth(item!.id, payload);
+      if (mode === "add") {
+        await addWealthWithHistory(payload, historyPayload);
+      } else {
+        await updateWealthWithHistory(item!.id, payload, historyPayload);
+      }
       onSuccess();
       onClose();
     } catch (e) {
@@ -81,8 +203,10 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
     }
   }
 
-  const inputClass = "w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm outline-none";
+  const inputClass = "w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm outline-none placeholder:text-fg-muted";
   const busy = loading || deleting;
+
+  const allAvailableMonths = generateMonthsList();
 
   return (
     <AnimatePresence>
@@ -110,7 +234,7 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pb-4 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* Type toggle */}
           <div className="flex gap-2">
             {(["asset", "liability"] as WealthType[]).map((entryType) => (
@@ -137,18 +261,21 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
             required
           />
 
-          {/* Value */}
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            placeholder={t.wealth.valuePlaceholder}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className={inputClass}
-            required
-          />
+          {/* Current Value */}
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-fg-muted">ยอดปัจจุบัน (Current Value)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              placeholder={t.wealth.valuePlaceholder}
+              value={value}
+              onChange={(e) => { setValue(e.target.value); syncValueToCurrentMonth(e.target.value); }}
+              className={inputClass}
+              required
+            />
+          </div>
 
           {/* Liquid toggle — assets only */}
           {type === "asset" && (
@@ -194,6 +321,68 @@ export function WealthFormDrawer({ mode, item, initialType, onClose, onSuccess }
               </div>
             </>
           )}
+
+          {/* Monthly History Section */}
+          <div className="border-t border-[var(--glass-border)] pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">ประวัติยอดเงินรายเดือน (Monthly History)</h3>
+              <button
+                type="button"
+                onClick={handleAddMonth}
+                className="text-xs text-accent font-semibold"
+              >
+                + เพิ่มเดือนย้อนหลัง
+              </button>
+            </div>
+            
+            {fetchingHistory ? (
+              <p className="text-xs text-fg-muted text-center py-2">{t.common.loading}</p>
+            ) : (
+              <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                {history.map((h, index) => {
+                  const usedMonths = new Set(history.map((x) => x.month));
+                  const unUsedMonths = allAvailableMonths.filter((m) => !usedMonths.has(m) || m === h.month);
+                  
+                  return (
+                    <div key={index} className="flex items-center gap-2">
+                      <select
+                        value={h.month}
+                        onChange={(e) => handleMonthSelect(index, e.target.value)}
+                        className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs outline-none w-32 shrink-0 font-medium text-fg-muted"
+                      >
+                        {unUsedMonths.map((m) => (
+                          <option key={m} value={m}>
+                            {formatMonthKey(m)}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        value={h.value}
+                        onChange={(e) => handleHistoryValueChange(index, e.target.value)}
+                        className={`${inputClass} !py-1.5 !text-xs`}
+                        placeholder="0.00"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMonth(index)}
+                        className="text-negative hover:opacity-80 shrink-0 p-1"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
+                {history.length === 0 && (
+                  <p className="text-xs text-fg-muted text-center py-2">ไม่มีประวัติย้อนหลัง (ระบบจะบันทึกเมื่อบันทึกตัวสินทรัพย์)</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {error && (
             <div className="flex gap-2 rounded-xl bg-[var(--negative)]/10 p-3 text-sm text-[var(--negative)]">

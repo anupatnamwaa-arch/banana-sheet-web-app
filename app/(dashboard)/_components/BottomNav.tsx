@@ -19,7 +19,7 @@ export function BottomNav() {
     { href: "/wealth", label: t.nav.wealth, Icon: Wallet },
   ];
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; type: string; icon: string | null }>>([]);
   const [categoriesFetched, setCategoriesFetched] = useState(false);
 
   async function handleFabClick() {
@@ -28,7 +28,7 @@ export function BottomNav() {
         const res = await fetch("/api/categories");
         if (res.ok) setCategories(await res.json());
       } catch {
-        // proceed with empty categories — still usable
+        // proceed with empty categories - still usable
       }
       setCategoriesFetched(true);
     }
@@ -39,7 +39,6 @@ export function BottomNav() {
     <>
       <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="relative mx-auto flex max-w-md items-end">
-          {/* Nav bar */}
           <div className="glass flex w-full items-center justify-around p-2">
             {leftTabs.map(({ href, label, Icon }) => {
               const active = pathname.startsWith(href);
@@ -57,8 +56,17 @@ export function BottomNav() {
               );
             })}
 
-            {/* FAB spacer */}
-            <div className="w-[52px] flex-shrink-0" aria-hidden />
+            {/* Protruding FAB */}
+            <div className="relative flex h-[48px] w-[48px] flex-shrink-0 items-center justify-center">
+              <button
+                onClick={handleFabClick}
+                aria-label={t.nav.addEntry}
+                id="fab-add-button"
+                className="absolute -top-5 flex h-[54px] w-[54px] items-center justify-center rounded-full bg-accent text-black shadow-[0_6px_20px_var(--color-accent-shadow)] transition-all hover:scale-105 active:scale-95 duration-200 z-10 group"
+              >
+                <Plus size={26} className="transition-transform group-hover:rotate-90 duration-200" strokeWidth={2.5} />
+              </button>
+            </div>
 
             {rightTabs.map(({ href, label, Icon }) => {
               const active = pathname.startsWith(href);
@@ -77,15 +85,6 @@ export function BottomNav() {
             })}
           </div>
 
-          {/* Notched FAB — protrudes 20px above nav */}
-          <button
-            onClick={handleFabClick}
-            aria-label={t.nav.addEntry}
-            style={{ bottom: "calc(100% - 20px)" }}
-            className="absolute left-1/2 -translate-x-1/2 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-accent text-black shadow-[0_6px_24px_rgba(250,204,21,0.45)] transition-transform active:scale-95"
-          >
-            <Plus size={26} strokeWidth={2.5} />
-          </button>
         </div>
       </nav>
 

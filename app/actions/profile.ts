@@ -152,3 +152,19 @@ export async function saveBalanceMethod(
 
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Toggle whether the previous billing cycle's remaining balance rolls over.
+ */
+export async function saveCarryoverEnabled(enabled: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthenticated");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ carryover_enabled: enabled })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+}

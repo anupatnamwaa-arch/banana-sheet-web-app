@@ -1,4 +1,9 @@
 import { LoginForm } from "./_components/LoginForm";
+import {
+  AtelierBrand,
+  AtelierCard,
+  AtelierShell,
+} from "@/app/_components/atelier";
 import { getDictionary } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
 
@@ -6,22 +11,17 @@ export default async function LoginPage() {
   const locale = await getLocale();
   const t = getDictionary(locale);
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <div className="glass w-full max-w-sm p-8 text-center">
-        <div className="mb-4 flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png"
-            alt="Banana Sheet Logo"
-            className="h-16 w-16 object-contain rounded-2xl border border-[var(--glass-border)]/30 shadow-sm"
-          />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight">Banana Sheet</h1>
-        <p className="mt-2 text-sm text-fg-muted">
-          Log expenses in a tap. See them beautifully.
-        </p>
-        <LoginForm dict={t.auth} />
-      </div>
-    </main>
+    <AtelierShell contentClassName="flex min-h-[calc(100dvh-3rem)] max-w-md items-center justify-center">
+      <AtelierCard className="atelier-card-arrive w-full px-6 py-7 text-center sm:px-8 sm:py-8">
+        <AtelierBrand
+          subtitle={
+            locale === "en"
+              ? "Log expenses in a tap. See them beautifully."
+              : "บันทึกรายจ่ายง่าย เห็นภาพการเงินชัดขึ้น"
+          }
+        />
+        <LoginForm dict={t.auth} locale={locale} />
+      </AtelierCard>
+    </AtelierShell>
   );
 }

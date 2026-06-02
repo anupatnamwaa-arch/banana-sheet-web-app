@@ -4,8 +4,8 @@
    Strict dark mode; high contrast; low data-ink. */
 
 :root {
-  --bg: #0a0a0b;
-  --bg-elevated: #141417;
+  --bg: #0e0c09;
+  --bg-elevated: #16140f;
   --fg: #f5f5f7;
   --fg-muted: #a1a1aa;
   --accent: #facc15; /* banana */
@@ -14,6 +14,18 @@
   --glass-bg: rgba(255, 255, 255, 0.06);
   --glass-border: rgba(255, 255, 255, 0.1);
   --radius-card: 1.5rem;
+  --radius-inner: 1rem;
+  --accent-shadow: rgba(250, 204, 21, 0.45);
+
+  /* Hero card — warm banana surface */
+  --bg-hero: #1a1710;
+
+  /* Nana quiet dark tokens */
+  --nana-surface: #1b1915;
+  --nana-surface-soft: #242017;
+  --nana-ink: #f8f0dc;
+  --nana-muted: #b8aa8c;
+  --nana-banana: #e5b82d;
 }
 
 @theme inline {
@@ -22,6 +34,7 @@
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-accent: var(--accent);
+  --color-accent-shadow: var(--accent-shadow);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --font-sans: var(--font-geist-sans);
@@ -37,14 +50,23 @@ body {
 /* ── Light theme (กล้วยครีม) ──────────────────────────────────────────────── */
 [data-theme="light"] {
   --bg: #fffbf0;
-  --bg-elevated: #ffffff;
+  --bg-elevated: #fffdf5;
+  --bg-hero: #fff8e6;
   --fg: #1c1917;
   --fg-muted: #78716c;
   --accent: #d97706;
+  --accent-shadow: rgba(217, 119, 6, 0.3);
   --positive: #059669;
   --negative: #dc2626;
   --glass-bg: rgba(0, 0, 0, 0.04);
   --glass-border: rgba(0, 0, 0, 0.09);
+
+  /* Nana warm light tokens */
+  --nana-surface: #fffdf7;
+  --nana-surface-soft: #fff7df;
+  --nana-ink: #463315;
+  --nana-muted: #877455;
+  --nana-banana: #e6b928;
 }
 
 /* ── Hide-balance mode — blurs all tabular numbers ────────────────────────── */
@@ -62,4 +84,126 @@ html.hide-balance .tabular-nums {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: var(--radius-card);
+}
+
+/* Banana Atelier presentation layer. */
+:root {
+  --atelier-bg: #17130a;
+  --atelier-card: rgba(39, 32, 16, 0.88);
+  --atelier-card-border: rgba(250, 204, 21, 0.2);
+  --atelier-dot: rgba(250, 204, 21, 0.13);
+  --atelier-ink: #fff8db;
+  --atelier-muted: #d4c68f;
+  --atelier-peel: rgba(250, 204, 21, 0.18);
+  --atelier-shadow: rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="light"] {
+  --atelier-bg: #fff9e8;
+  --atelier-card: rgba(255, 255, 255, 0.9);
+  --atelier-card-border: rgba(180, 128, 8, 0.2);
+  --atelier-dot: rgba(180, 128, 8, 0.12);
+  --atelier-ink: #392d11;
+  --atelier-muted: #78683b;
+  --atelier-peel: rgba(245, 186, 26, 0.18);
+  --atelier-shadow: rgba(120, 88, 18, 0.14);
+}
+
+.atelier-shell {
+  background-color: var(--atelier-bg);
+  background-image:
+    radial-gradient(circle at 18% 16%, var(--atelier-peel), transparent 24rem),
+    radial-gradient(circle at 84% 84%, var(--atelier-peel), transparent 22rem),
+    radial-gradient(var(--atelier-dot) 1px, transparent 1px);
+  background-size: auto, auto, 18px 18px;
+  color: var(--atelier-ink);
+  display: grid;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: 4.5rem 1.25rem 2rem;
+  place-items: center;
+  position: relative;
+}
+
+.atelier-shell-content {
+  position: relative;
+  width: 100%;
+  z-index: 2;
+}
+
+.atelier-peel {
+  border: 2px solid var(--atelier-peel);
+  border-radius: 50%;
+  height: 18rem;
+  pointer-events: none;
+  position: absolute;
+  width: 7rem;
+}
+
+.atelier-peel-one { left: -4rem; top: 9%; transform: rotate(-32deg); }
+.atelier-peel-two { right: -3rem; top: 25%; transform: rotate(28deg); }
+.atelier-peel-three { bottom: -8rem; left: 36%; transform: rotate(76deg); }
+
+.atelier-card {
+  background: var(--atelier-card);
+  border: 1px solid var(--atelier-card-border);
+  border-radius: 2rem;
+  box-shadow: 0 1.5rem 4rem var(--atelier-shadow);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+.atelier-card-arrive { animation: atelier-card-arrive 420ms ease-out both; }
+
+.atelier-theme-toggle {
+  align-items: center;
+  background: var(--atelier-card);
+  border: 1px solid var(--atelier-card-border);
+  border-radius: 999px;
+  color: var(--atelier-ink);
+  cursor: pointer;
+  display: flex;
+  height: 2.75rem;
+  justify-content: center;
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  transition: background-color 180ms ease, transform 180ms ease;
+  width: 2.75rem;
+  z-index: 3;
+}
+
+.atelier-theme-toggle:hover { transform: translateY(-2px); }
+.atelier-theme-toggle svg { fill: none; height: 1.15rem; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; width: 1.15rem; }
+
+.atelier-brand { text-align: center; }
+.atelier-brand-logo { border-radius: 1.25rem; display: inline-block; height: 4.5rem; object-fit: contain; width: 4.5rem; }
+.atelier-brand-eyebrow { color: var(--atelier-muted); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; margin-top: 1rem; text-transform: uppercase; }
+.atelier-brand-title { font-size: clamp(2rem, 8vw, 2.75rem); font-weight: 800; letter-spacing: -0.06em; line-height: 1; margin-top: 0.35rem; }
+.atelier-brand-subtitle { color: var(--atelier-muted); font-size: 0.9rem; line-height: 1.55; margin-top: 0.75rem; }
+
+.atelier-banana { margin-inline: auto; width: min(11rem, 42vw); }
+.atelier-banana svg { display: block; overflow: visible; width: 100%; }
+.atelier-banana-body { fill: #facc15; stroke: #9a6b08; stroke-linejoin: round; stroke-width: 2.5; }
+.atelier-banana-shine { fill: none; opacity: 0.55; stroke: #fff2a6; stroke-linecap: round; stroke-width: 3; }
+.atelier-banana-limb { fill: none; stroke: #6e4b0b; stroke-linecap: round; stroke-width: 3; }
+.atelier-banana-eyes { fill: #3d2b09; }
+.atelier-banana-eyes-soft circle { transform-box: fill-box; transform-origin: center; transform: scaleY(0.45); }
+.atelier-banana-mouth { fill: none; stroke: #6e4b0b; stroke-linecap: round; stroke-width: 2.4; }
+.atelier-banana-stars { fill: #facc15; }
+.atelier-banana-float { animation: atelier-banana-float 3.8s ease-in-out infinite; }
+
+@keyframes atelier-banana-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-0.65rem) rotate(1deg); }
+}
+
+@keyframes atelier-card-arrive {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atelier-banana-float { animation: none; }
+  .atelier-card-arrive { animation: none; }
+  .atelier-theme-toggle { transition: none; }
 }

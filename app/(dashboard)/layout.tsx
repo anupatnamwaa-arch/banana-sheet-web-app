@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
+import { isDevAuthBypassEnabled } from "@/lib/dev-auth-bypass";
 import { BottomNav } from "./_components/BottomNav";
 
 export default async function DashboardLayout({
@@ -12,8 +13,9 @@ export default async function DashboardLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const devAuthBypass = isDevAuthBypassEnabled();
 
-  if (!user) redirect("/login");
+  if (!user && !devAuthBypass) redirect("/login");
 
   const locale = await getLocale();
   const dict = getDictionary(locale);

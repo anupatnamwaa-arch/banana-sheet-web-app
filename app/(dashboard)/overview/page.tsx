@@ -11,6 +11,7 @@ import { HomeTodayCard } from "./_components/HomeTodayCard";
 import { HomeRecentTransactions } from "./_components/HomeRecentTransactions";
 import { HomeInsightCard } from "./_components/HomeInsightCard";
 import { EmergencyRunwayCard } from "./_components/EmergencyRunwayCard";
+import { UserOnboarding } from "./_components/UserOnboarding";
 import { getLocale } from "@/lib/i18n/locale";
 
 export default async function OverviewPage() {
@@ -69,13 +70,17 @@ export default async function OverviewPage() {
         todayExpense={home.todayExpense}
         todayCount={home.todayCount}
         avgDailyExpense={home.avgDailyExpense}
+        remaining={home.remaining}
+        daysRemaining={home.daysRemaining}
       />
+
+      <HomeInsightCard insight={home.insight} />
 
       <HomeRecentTransactions transactions={home.recentTransactions} />
 
       <EmergencyRunwayCard data={overview.runway} targetMonths={targetMonths} />
 
-      <HomeInsightCard insight={home.insight} />
+      <UserOnboarding />
     </section>
   );
 }

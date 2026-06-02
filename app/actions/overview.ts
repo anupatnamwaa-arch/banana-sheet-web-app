@@ -14,6 +14,8 @@ export interface RunwayData {
   liquidAssets: number;
   avgMonthlyExpense: number;
   months: number | null;
+  totalFixedCosts?: number;
+  survivalMonths?: number | null;
 }
 
 export interface DailyPaceData {
@@ -97,14 +99,22 @@ export async function getOverviewData(
         .lt("date", monthEnd)
     : null;
 
+  const fixedCostsQuery = isPro
+    ? supabase
+        .from("fixed_costs")
+        .select("amount, type")
+        .eq("user_id", userId)
+    : null;
+
   // ── Parallel fetch ────────────────────────────────────────────────────────
-  const [periodResult, trailingResult, wealthResult, budgetResult, currentMonthResult] =
+  const [periodResult, trailingResult, wealthResult, budgetResult, currentMonthResult, fixedCostsResult] =
     await Promise.all([
       periodQuery,
       trailingQuery ?? Promise.resolve({ data: null, error: null }),
       wealthQuery ?? Promise.resolve({ data: null, error: null }),
       budgetQuery ?? Promise.resolve({ data: null, error: null }),
       currentMonthQuery ?? Promise.resolve({ data: null, error: null }),
+      fixedCostsQuery ?? Promise.resolve({ data: null, error: null }),
     ]);
 
   if (periodResult.error) throw new Error(`Period query failed: ${periodResult.error.message}`);
@@ -112,6 +122,7 @@ export async function getOverviewData(
   if (isPro && wealthResult.error) throw new Error(`Wealth query failed: ${wealthResult.error.message}`);
   if (isPro && budgetResult.error) throw new Error(`Budget query failed: ${budgetResult.error.message}`);
   if (isPro && currentMonthResult.error) throw new Error(`Current month query failed: ${currentMonthResult.error.message}`);
+  if (isPro && fixedCostsResult.error) throw new Error(`Fixed costs query failed: ${fixedCostsResult.error.message}`);
 
   // ── Hero metrics ──────────────────────────────────────────────────────────
   const periodRows = (periodResult.data ?? []) as Array<{ amount: number; type: string }>;
@@ -153,7 +164,18 @@ export async function getOverviewData(
   const wealthRows = (wealthResult.data ?? []) as Array<{ value: number }>;
   const liquidAssets = wealthRows.reduce((sum, r) => sum + r.value, 0);
   const runwayMonths = avgMonthlyExpense > 0 ? liquidAssets / avgMonthlyExpense : null;
-  const runway: RunwayData = { liquidAssets, avgMonthlyExpense, months: runwayMonths };
+
+  const fcRows = (fixedCostsResult.data ?? []) as Array<{ amount: number; type: string }>;
+  const totalFixedCosts = fcRows.filter((r) => r.type === "expense").reduce((sum, r) => sum + r.amount, 0);
+  const survivalMonths = totalFixedCosts > 0 ? liquidAssets / totalFixedCosts : null;
+
+  const runway: RunwayData = {
+    liquidAssets,
+    avgMonthlyExpense,
+    months: runwayMonths,
+    totalFixedCosts,
+    survivalMonths,
+  };
 
   // ── Daily Pace ────────────────────────────────────────────────────────────
   const budgetRows = (budgetResult.data ?? []) as Array<{ limit_amount: number }>;

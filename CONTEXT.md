@@ -4,6 +4,23 @@ A mobile-first personal-finance PWA. Users log money frictionlessly via phone ho
 
 ## Language
 
+### Experience
+
+**Nana**:
+The in-app banana companion and coaching voice inside Banana Sheet. Nana interprets money behavior in a friendly, shame-free tone; Nana is not the product name and not an AI chatbot persona.
+
+**Nana Guidance**:
+Financial meaning computed from deterministic money rules and expressed in Nana's friendly Thai-first voice. AI may enrich a Daily Brief or Monthly Reflection, but does not decide immediate safe-to-spend guidance.
+
+**Daily Brief**:
+Nana's stable daily interpretation of the user's money condition. It refreshes each morning and when deterministic rules detect a meaningful event, such as Income that may need allocation, an unusual Expense, a Category threshold crossing, a pace-status change, or an upcoming Fixed Expense.
+
+**Safe to Spend**:
+The flexible amount Nana considers safe to use today after protecting upcoming Fixed Expenses and committed saving, distributed across the days remaining in the current budgeting period. It is guidance for daily decisions, not an account balance.
+
+**Banana Money Score**:
+A 0-100 interpretation of the user's current money behavior. It supports Nana's Daily Brief and summarizes spending pace, Safe to Spend, saving progress, upcoming Fixed Expense pressure, and logging consistency without replacing the underlying metrics.
+
 The domain has two strictly separate worlds of money that are never silently merged: **flow** (movement over time) and **stock** (a snapshot of what you own/owe).
 
 ### Flow (derived from Transactions)

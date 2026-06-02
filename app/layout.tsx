@@ -14,10 +14,13 @@ export const metadata: Metadata = {
   description: "Frictionless personal finance. Log in a tap, see it beautifully.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Banana Sheet" },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0b",
+  themeColor: "#fffbf0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -30,7 +33,7 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale} className={`${notoSansThai.variable} h-full antialiased`}>
+    <html lang={locale} className={`${notoSansThai.variable} h-full antialiased`} data-theme="light">
       <body className="min-h-full">{children}</body>
     </html>
   );

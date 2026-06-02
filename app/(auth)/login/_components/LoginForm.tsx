@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { Dictionary } from "@/lib/i18n";
 
-export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
+export function LoginForm({ dict, locale }: { dict: Dictionary["auth"]; locale: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,15 +81,15 @@ export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
   }
 
   return (
-    <div className="mt-8 space-y-3">
+    <div className="mt-5 space-y-3">
       {/* Premium Google Sign-In Button */}
       <button
         type="button"
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] py-3 text-sm font-semibold transition-all hover:bg-[var(--glass-bg)] active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
+        className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border border-[var(--atelier-line)] bg-[var(--atelier-surface-strong)] py-3 text-sm font-semibold shadow-sm transition-all hover:border-accent active:scale-[0.98] disabled:opacity-50"
       >
-        <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+        <svg aria-hidden="true" className="h-5 w-5 shrink-0" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.57h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.37C21.68,11.83 21.56,11.45 21.35,11.1z" fill="#4285F4" />
           <path d="M12,20.9c2.5,0 4.6,-0.83 6.13,-2.26l-3.3,-2.57c-0.91,0.61 -2.08,0.98 -3.3,0.98c-2.42,0 -4.47,-1.64 -5.2,-3.84H3v2.66C4.52,18.91 8.01,20.9 12,20.9z" fill="#34A853" />
           <path d="M6.8,13.22c-0.18,-0.55 -0.29,-1.13 -0.29,-1.72s0.1,-1.17 0.29,-1.72V7.12H3C2.36,8.4 2,9.88 2,11.5s0.36,3.1 1,4.38L6.8,13.22z" fill="#FBBC05" />
@@ -99,37 +99,43 @@ export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
       </button>
 
       {/* Elegant visual divider */}
-      <div className="relative py-3 flex items-center justify-center">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[var(--glass-border)] opacity-40"></div>
-        </div>
-        <span className="relative bg-[var(--bg-elevated)] px-4 text-xs font-semibold tracking-wide text-fg-muted uppercase">
-          {dict.googleSignIn ? (dict.googleSignIn.includes("Google") ? "or" : "หรือ") : "or"}
+      <div className="relative flex items-center justify-center py-2">
+        <div className="absolute inset-x-0 border-t border-[var(--atelier-line)]"></div>
+        <span className="relative bg-[var(--atelier-surface)] px-3 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-fg-muted">
+          {locale === "en" ? "or" : "หรือ"}
         </span>
       </div>
 
-      <form onSubmit={handleLogin} className="space-y-3">
+      <form onSubmit={handleLogin} className="space-y-3 text-left">
+        <label className="sr-only" htmlFor="login-email">
+          {dict.emailPlaceholder}
+        </label>
         <input
+          id="login-email"
           type="email"
           placeholder={dict.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent"
+          className="w-full rounded-2xl border border-[var(--atelier-line)] bg-[var(--atelier-surface-strong)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent"
         />
+        <label className="sr-only" htmlFor="login-password">
+          {dict.passwordPlaceholder}
+        </label>
         <input
+          id="login-password"
           type="password"
           placeholder={dict.passwordPlaceholder}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent"
+          className="w-full rounded-2xl border border-[var(--atelier-line)] bg-[var(--atelier-surface-strong)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent"
         />
-        {error && <p className="text-xs text-[var(--negative)]">{error}</p>}
+        {error && <p role="alert" className="text-xs text-negative">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-50 cursor-pointer"
+          className="w-full cursor-pointer rounded-2xl bg-accent py-3 text-sm font-bold text-black transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? dict.loginLoading : dict.loginButton}
         </button>
@@ -137,7 +143,7 @@ export function LoginForm({ dict }: { dict: Dictionary["auth"] }) {
           type="button"
           onClick={handleSignUp}
           disabled={loading}
-          className="w-full rounded-2xl border border-[var(--glass-border)] py-3 text-sm font-medium disabled:opacity-50 cursor-pointer"
+          className="w-full cursor-pointer rounded-2xl border border-[var(--atelier-line)] py-3 text-sm font-semibold transition-colors hover:bg-[var(--atelier-olive-soft)] disabled:opacity-50"
         >
           {dict.signUp}
         </button>

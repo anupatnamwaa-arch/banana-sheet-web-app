@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { bangkokDateKey, formatTHB } from "@/lib/format";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import { deleteTransaction, duplicateTransaction } from "@/app/actions/transactions";
-import { categoryIcon } from "@/app/(dashboard)/analytics/_components/category-icon";
+import { CategoryIcon } from "@/app/(dashboard)/analytics/_components/category-icon";
+import { matchBrand, getBrandLogoUrl, BrandLogoImage } from "@/app/(dashboard)/analytics/_components/brand-logo";
 import { TransactionFormDrawer, type TransactionRow } from "@/app/(dashboard)/analytics/_components/TransactionFormDrawer";
 import {
   AdvancedFilterSheet,
@@ -23,6 +24,8 @@ interface Props {
 interface Category {
   id: string;
   name: string;
+  icon?: string | null;
+  color?: string | null;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -68,7 +71,7 @@ export function TransactionsView({ userId }: Props) {
   const fetchTransactions = useCallback(async () => {
     const { data } = await supabase
       .from("transactions")
-      .select("id, amount, type, date, note, category_id, categories(name), brands(name, logo_url)")
+      .select("id, amount, type, date, note, category_id, fixed_cost_id, recurring_kind, categories(name, icon, color), brands(name, logo_url)")
       .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(500);
@@ -82,7 +85,7 @@ export function TransactionsView({ userId }: Props) {
     fetchTransactions();
     supabase
       .from("categories")
-      .select("id, name")
+      .select("id, name, icon, color")
       .eq("user_id", userId)
       .order("name")
       .then(({ data }) => setCategories((data ?? []) as Category[]));
@@ -437,8 +440,11 @@ function TxRowItem({
   const { text, color } = amountDisplay(tx);
   const [, m, d] = bangkokDateKey(tx.date).split("-").map(Number);
   const dateLabel = `${d}/${m}`;
+  const brand = matchBrand(tx.note);
   const tint =
-    tx.type === "income" ? "var(--positive)" : tx.type === "savings" ? "#38bdf8" : "var(--negative)";
+    brand ? brand.color :
+    (tx.categories?.color ||
+    (tx.type === "income" ? "var(--positive)" : tx.type === "savings" ? "#38bdf8" : "var(--negative)"));
 
   function clearTimer() {
     if (longPressTimer.current) {
@@ -482,12 +488,30 @@ function TxRowItem({
         whileTap={{ scale: 0.99 }}
         className="relative flex cursor-pointer items-center gap-3 rounded-2xl bg-[var(--bg-elevated)] px-4 py-3"
       >
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base"
-          style={{ background: `color-mix(in srgb, ${tint} 18%, transparent)` }}
-        >
-          {categoryIcon(catName)}
-        </div>
+        {brand ? (
+          <BrandLogoImage
+            logoUrl={getBrandLogoUrl(brand.storagePath)}
+            size={36}
+            fallback={
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base"
+                style={{
+                  background: `color-mix(in srgb, ${tint} 18%, transparent)`,
+                  color: tint,
+                }}
+              >
+                <brand.icon size={18} />
+              </div>
+            }
+          />
+        ) : (
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base"
+            style={{ background: `color-mix(in srgb, ${tint} 18%, transparent)` }}
+          >
+            <CategoryIcon name={catName} emoji={tx.categories?.icon} size={18} className="text-fg" style={{ color: tx.categories?.color || undefined }} />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{name}</p>
           <p className="truncate text-xs text-fg-muted">

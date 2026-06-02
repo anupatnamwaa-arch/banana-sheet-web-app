@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AtelierBrand,
+  AtelierCard,
+  AtelierShell,
+  BananaGuide,
+} from "@/app/_components/atelier";
 import { createClient } from "@/lib/supabase/client";
 import type { Dictionary } from "@/lib/i18n";
 
@@ -11,7 +17,7 @@ interface Props {
   locale: string;
 }
 
-export function ResetPasswordForm({ dict, common, locale }: Props) {
+export function ResetPasswordForm({ dict, common }: Props) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -42,21 +48,26 @@ export function ResetPasswordForm({ dict, common, locale }: Props) {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">{dict.resetTitle}</h1>
-        <p className="mt-2 text-sm text-fg-muted">
-          {dict.resetSubtitle}
-        </p>
-        <form onSubmit={handleSubmit} className="mt-8 space-y-3">
-          <input type="password" placeholder={dict.newPasswordPlaceholder} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm outline-none" />
-          <input type="password" placeholder={dict.confirmPasswordPlaceholder} value={confirm} onChange={(event) => setConfirm(event.target.value)} required className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm outline-none" />
-          {error && <p className="text-xs text-[var(--negative)]">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full rounded-2xl bg-accent py-3 text-sm font-semibold text-black disabled:opacity-50">
+    <AtelierShell contentClassName="flex min-h-[calc(100dvh-3rem)] max-w-md items-center justify-center">
+      <AtelierCard className="atelier-card-arrive w-full px-6 py-7 text-center sm:px-8 sm:py-8">
+        <AtelierBrand subtitle={dict.resetSubtitle} />
+        <BananaGuide pose="helpful" className="mx-auto mt-4 h-24 w-24" />
+        <h2 className="mt-2 text-xl font-bold tracking-tight">{dict.resetTitle}</h2>
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3 text-left">
+          <label className="sr-only" htmlFor="new-password">
+            {dict.newPasswordPlaceholder}
+          </label>
+          <input id="new-password" type="password" placeholder={dict.newPasswordPlaceholder} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} className="w-full rounded-2xl border border-[var(--atelier-line)] bg-[var(--atelier-surface-strong)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent" />
+          <label className="sr-only" htmlFor="confirm-password">
+            {dict.confirmPasswordPlaceholder}
+          </label>
+          <input id="confirm-password" type="password" placeholder={dict.confirmPasswordPlaceholder} value={confirm} onChange={(event) => setConfirm(event.target.value)} required className="w-full rounded-2xl border border-[var(--atelier-line)] bg-[var(--atelier-surface-strong)] px-4 py-3 text-sm outline-none transition-colors focus:border-accent" />
+          {error && <p role="alert" className="text-xs text-negative">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full rounded-2xl bg-accent py-3 text-sm font-bold text-black disabled:opacity-50">
             {loading ? common.loading : dict.resetSubmit}
           </button>
         </form>
-      </div>
-    </main>
+      </AtelierCard>
+    </AtelierShell>
   );
 }

@@ -10,7 +10,8 @@ import { GoalFormDrawer } from "./GoalFormDrawer";
 import { WealthTrendChart } from "./WealthTrendChart";
 import { AssetGrowthChart } from "./AssetGrowthChart";
 import { WealthImportDrawer } from "./WealthImportDrawer";
-import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
+import { useT } from "@/lib/i18n/LanguageProvider";
+import { calculateGoalMonthlyTarget } from "@/lib/wealth/goals";
 
 function assetIcon(name: string): string {
   if (/เงินสด|cash/i.test(name)) return "💵";
@@ -42,8 +43,8 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 
 export function WealthView({ data }: { data: WealthData }) {
   const t = useT();
-  const locale = useLocale();
   const router = useRouter();
+  const [now] = useState(Date.now);
 
   function displayDate(iso: string): string {
     const d = new Date(iso);
@@ -60,7 +61,7 @@ export function WealthView({ data }: { data: WealthData }) {
   function dueLabel(due: string): { text: string; near: boolean } {
     const [y, m, d] = due.split("-").map(Number);
     const dueMs = Date.UTC(y, m - 1, d);
-    const days = Math.round((dueMs - Date.now()) / 86_400_000);
+    const days = Math.round((dueMs - now) / 86_400_000);
     const month = t.calendar.months[m - 1];
     return { text: `${t.wealth.due} ${d} ${month}`, near: days >= 0 && days <= 7 };
   }
@@ -349,6 +350,24 @@ export function WealthView({ data }: { data: WealthData }) {
               <div className="space-y-3">
                 {goals.map((g) => {
                   const pct = g.target_amount > 0 ? Math.min(100, Math.round((g.current_amount / g.target_amount) * 100)) : 0;
+                  
+                  // Calculate goal status using our pure helper
+                  const status = calculateGoalMonthlyTarget(g.target_amount, g.current_amount, g.target_date);
+                  
+                  let statusLine = "";
+                  let statusColor = "text-fg-muted";
+
+                  if (status.completed) {
+                    statusLine = t.wealth.goalCompleted;
+                    statusColor = "text-positive";
+                  } else if (status.overdue) {
+                    statusLine = t.wealth.goalOverdue;
+                    statusColor = "text-negative font-semibold";
+                  } else if (status.monthlyTarget !== null) {
+                    statusLine = t.wealth.goalMonthlyTarget.replace("{amount}", formatTHB(status.monthlyTarget));
+                    statusColor = "text-amber-400 font-semibold";
+                  }
+
                   return (
                     <button key={g.id} onClick={() => setGoalDrawer({ mode: "edit", goal: g })} className="block w-full text-left">
                       <div className="flex items-center justify-between">
@@ -362,6 +381,11 @@ export function WealthView({ data }: { data: WealthData }) {
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
                         <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
                       </div>
+                      {statusLine && (
+                        <p className={`mt-1.5 text-[11px] ${statusColor}`}>
+                          {statusLine}
+                        </p>
+                      )}
                     </button>
                   );
                 })}

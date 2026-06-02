@@ -6,13 +6,15 @@ interface Props {
   todayExpense: number;
   todayCount: number;
   avgDailyExpense: number;
+  remaining: number;
+  daysRemaining: number;
 }
 
 function fmt(n: number) {
   return `฿${Math.round(n).toLocaleString("th-TH")}`;
 }
 
-export function HomeTodayCard({ todayExpense, todayCount, avgDailyExpense }: Props) {
+export function HomeTodayCard({ todayExpense, todayCount, avgDailyExpense, remaining, daysRemaining }: Props) {
   const t = useT();
   const diff = todayExpense - avgDailyExpense;
   const absDiff = Math.abs(Math.round(diff));
@@ -30,9 +32,15 @@ export function HomeTodayCard({ todayExpense, todayCount, avgDailyExpense }: Pro
         <p className="text-sm font-semibold">{t.overview.todaySpent}</p>
         <span className="text-lg">📅</span>
       </div>
-      <p className="mt-1 text-3xl font-bold tabular-nums text-negative">{fmt(todayExpense)}</p>
+      <p className="mt-1 text-3xl font-bold tabular-nums text-fg">{fmt(todayExpense)}</p>
       <p className="mt-0.5 text-xs text-fg-muted">{todayCount} {t.common.transactions}</p>
       {compText && <p className={`mt-1 text-xs font-medium ${compColor}`}>{compText}</p>}
+
+      {daysRemaining > 0 && remaining > 0 && (
+        <p className="mt-3 border-t border-[var(--glass-border)] pt-3 text-xs text-fg-muted">
+          {t.overview.balanceDailyAvg} {fmt(Math.floor(remaining / daysRemaining))}
+        </p>
+      )}
     </div>
   );
 }

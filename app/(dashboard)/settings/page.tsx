@@ -18,11 +18,13 @@ import { ProfileHeader } from "./_components/ProfileHeader";
 import { LanguageSection } from "./_components/LanguageSection";
 import { PlanSection } from "./_components/PlanSection";
 import { WalletSection } from "./_components/WalletSection";
+import { FixedCostSection } from "./_components/FixedCostSection";
 import { BillingCycleSection }  from "./_components/BillingCycleSection";
 import { EmergencyGoalSection } from "./_components/EmergencyGoalSection";
 import { BalanceMethodSection } from "./_components/BalanceMethodSection";
 import { getDictionary } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
+import { getDevAuthBypassUserId } from "@/lib/dev-auth-bypass";
 
 export default async function SettingsPage() {
   const locale = await getLocale();
@@ -32,11 +34,11 @@ export default async function SettingsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
+  const userId = user?.id ?? await getDevAuthBypassUserId();
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("is_active, plan_type, plan_expires_at, api_key, savings_target_pct, display_name, avatar_url, cycle_start_day, emergency_months, balance_method")
+    .select("is_active, plan_type, plan_expires_at, api_key, savings_target_pct, display_name, avatar_url, cycle_start_day, emergency_months, balance_method, carryover_enabled")
     .eq("id", userId)
     .single();
 
@@ -48,7 +50,8 @@ export default async function SettingsPage() {
   const savingsTarget = profile?.savings_target_pct ?? 20;
   const cycleStartDay   = (profile as { cycle_start_day?: number   } | null)?.cycle_start_day   ?? 1;
   const emergencyMonths = (profile as { emergency_months?: number   } | null)?.emergency_months  ?? 6;
-  const balanceMethod   = ((profile as { balance_method?: string    } | null)?.balance_method    ?? "net") as "net" | "gross" | "budget";
+  const balanceMethod      = ((profile as { balance_method?: string    } | null)?.balance_method    ?? "net") as "net" | "gross" | "budget";
+  const carryoverEnabled   = ((profile as { carryover_enabled?: boolean } | null)?.carryover_enabled ?? false);
   const apiKey = profile?.api_key ?? null;
   const isPro = profile ? isActive(profile) : false;
   const planLabel = isPro ? "Banana Sheet Pro" : t.settings.freePlan;
@@ -110,6 +113,8 @@ export default async function SettingsPage() {
           href="#category-budgets"
         />
 
+        <FixedCostSection userId={userId} />
+
         <div className="px-1">
           <EmergencyGoalSection initialMonths={emergencyMonths} />
         </div>
@@ -119,7 +124,7 @@ export default async function SettingsPage() {
           <SavingsTargetSection initialTarget={savingsTarget} />
         </div>
 
-        <BalanceMethodSection initialMethod={balanceMethod} />
+        <BalanceMethodSection initialMethod={balanceMethod} initialCarryover={carryoverEnabled} />
       </SettingsSection>
 
       {/* ── 3. หมวดหมู่และงบ ──────────────────────────────────────────────── */}

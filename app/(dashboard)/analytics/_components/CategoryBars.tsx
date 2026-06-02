@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatTHB } from "@/lib/format";
 import type { CategoryRow } from "@/app/actions/analytics";
-import { categoryIcon, CATEGORY_BAR_COLORS } from "./category-icon";
+import { CategoryIcon, CATEGORY_BAR_COLORS } from "./category-icon";
 import { useT } from "@/lib/i18n/LanguageProvider";
 
 interface Props {
@@ -29,28 +29,31 @@ export function CategoryBars({ categories }: Props) {
       </div>
 
       <div className="space-y-3">
-        {top.map((c, i) => (
-          <div key={c.categoryId}>
-            <div className="flex items-center justify-between text-xs">
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span>{categoryIcon(c.name)}</span>
-                <span className="truncate text-fg">{c.name}</span>
-              </span>
-              <span className="shrink-0 tabular-nums text-fg-muted">
-                {formatTHB(c.spent)} <span className="text-fg-muted/70">{c.pct}%</span>
-              </span>
+        {top.map((c, i) => {
+          const activeColor = c.color || CATEGORY_BAR_COLORS[i % CATEGORY_BAR_COLORS.length];
+          return (
+            <div key={c.categoryId}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <CategoryIcon name={c.name} emoji={c.icon} size={14} className="shrink-0" style={{ color: c.color || undefined }} />
+                  <span className="truncate text-fg">{c.name}</span>
+                </span>
+                <span className="shrink-0 tabular-nums text-fg-muted">
+                  {formatTHB(c.spent)} <span className="text-fg-muted/70">{c.pct}%</span>
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.max(4, Math.round((c.spent / maxSpent) * 100))}%`,
+                    background: activeColor,
+                  }}
+                />
+              </div>
             </div>
-            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-border)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.max(4, Math.round((c.spent / maxSpent) * 100))}%`,
-                  background: CATEGORY_BAR_COLORS[i % CATEGORY_BAR_COLORS.length],
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

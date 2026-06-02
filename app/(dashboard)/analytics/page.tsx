@@ -3,19 +3,16 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getAnalyticsData } from "@/app/actions/analytics";
 import { normalizePeriod } from "@/app/actions/analytics-utils";
-import { RoastEntryCard } from "./_components/RoastEntryCard";
+import { RoastInsightSection } from "./_components/RoastInsightSection";
 import { PeriodPills } from "./_components/PeriodPills";
-import { KeyMetrics } from "./_components/KeyMetrics";
-import { CategoryBars } from "./_components/CategoryBars";
-import { IncomeExpenseTrend } from "./_components/IncomeExpenseTrend";
-import { SavingsRate } from "./_components/SavingsRate";
-import { DailyPattern } from "./_components/DailyPattern";
-import { TopSpendingInsight } from "./_components/TopSpendingInsight";
-import { ComparisonInsight } from "./_components/ComparisonInsight";
-import { SmartInsights } from "./_components/SmartInsights";
+import { AnalyticsView } from "./_components/AnalyticsView";
 import { AnalyticsEmptyState } from "./_components/AnalyticsEmptyState";
 import { getDictionary } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/locale";
+import {
+  getDevAuthBypassDataClient,
+  getDevAuthBypassUserId,
+} from "@/lib/dev-auth-bypass";
 
 interface SearchParams {
   period?: string;
@@ -39,12 +36,11 @@ export default async function AnalyticsPage({
   const t = getDictionary(locale);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id ?? await getDevAuthBypassUserId();
+  const dataSupabase = await getDevAuthBypassDataClient();
 
-  const { data: profileData } = await supabase
+  const { data: profileData } = await dataSupabase
     .from("profiles")
     .select("savings_target_pct")
     .eq("id", userId)
@@ -52,18 +48,22 @@ export default async function AnalyticsPage({
   const savingsTarget =
     (profileData as { savings_target_pct: number } | null)?.savings_target_pct ?? 20;
 
-  const analytics = await getAnalyticsData(userId, period, savingsTarget, range, locale);
+  const [analytics, { data: latestRoast }] = await Promise.all([
+    getAnalyticsData(userId, period, savingsTarget, range, locale),
+    dataSupabase
+      .from("ai_roasts")
+      .select("id, roast, quotes, persona_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   return (
-    <section className="space-y-4 pb-4">
-      {/* AI roast entry stays pinned at the very top */}
-      <RoastEntryCard />
-
+    <section className="pb-4 space-y-4">
       <header className="pt-1">
         <h1 className="text-2xl font-bold tracking-tight">{t.analytics.title}</h1>
-        <p className="mt-0.5 text-sm text-fg-muted">
-          {t.analytics.subtitle}
-        </p>
+        <p className="mt-0.5 text-sm text-fg-muted">{t.analytics.subtitle}</p>
       </header>
 
       <Suspense fallback={<div className="h-8" />}>
@@ -74,33 +74,8 @@ export default async function AnalyticsPage({
         <AnalyticsEmptyState />
       ) : (
         <>
-          <KeyMetrics metrics={analytics.metrics} />
-
-          <CategoryBars categories={analytics.categories} />
-
-          <IncomeExpenseTrend
-            trend={analytics.trend}
-            currentMonthRemaining={analytics.currentMonthRemaining}
-          />
-
-          <SavingsRate
-            savingRate={analytics.metrics.savingRate}
-            totalSavings={analytics.metrics.totalSavings}
-            totalIncome={analytics.metrics.totalIncome}
-            target={savingsTarget}
-          />
-
-          <DailyPattern
-            weeklyPattern={analytics.weeklyPattern}
-            peakWeekday={analytics.peakWeekday}
-            avgPerDay={analytics.metrics.avgPerDay}
-          />
-
-          <TopSpendingInsight topCategory={analytics.topCategory} />
-
-          <ComparisonInsight movers={analytics.movers} />
-
-          <SmartInsights insights={analytics.insights} />
+          <AnalyticsView analytics={analytics} savingsTarget={savingsTarget} />
+          <RoastInsightSection latestRoast={latestRoast} />
         </>
       )}
     </section>

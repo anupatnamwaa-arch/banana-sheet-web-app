@@ -7,7 +7,7 @@ import { X, Trash2, AlertTriangle } from "lucide-react";
 import { addTransaction, updateTransaction, deleteTransaction } from "@/app/actions/transactions";
 import { bangkokToday } from "@/app/actions/overview-utils";
 import type { TransactionPayload } from "@/app/actions/transactions";
-import type { TransactionType } from "@/lib/types";
+import type { RecurringKind, TransactionType } from "@/lib/types";
 import { useLocale, useT } from "@/lib/i18n/LanguageProvider";
 
 export interface TransactionRow {
@@ -17,14 +17,16 @@ export interface TransactionRow {
   category_id: string | null;
   date: string;
   note: string | null;
-  categories: { name: string } | null;
+  categories: { name: string; icon?: string | null; color?: string | null } | null;
   brands: { name: string; logo_url: string | null } | null;
+  fixed_cost_id?: string | null;
+  recurring_kind?: RecurringKind | null;
 }
 
 interface Props {
   mode: "add" | "edit";
   transaction?: TransactionRow;
-  categories: Array<{ id: string; name: string }>;
+  categories: Array<{ id: string; name: string; icon?: string | null; color?: string | null }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -50,7 +52,24 @@ export function TransactionFormDrawer({
   const [note, setNote] = useState(transaction?.note ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Monthly recurrence states
+  const [recurringKind, setRecurringKind] = useState<"one_time" | RecurringKind>(
+    transaction?.recurring_kind ?? "one_time"
+  );
+  const [fcDayOfMonth, setFcDayOfMonth] = useState<number>(() => {
+    if (transaction?.date) {
+      const dayPart = transaction.date.slice(0, 10).split("-")[2];
+      const dayNum = Number(dayPart);
+      if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+        return dayNum;
+      }
+    }
+    return bangkokToday().day;
+  });
+  const [fcEndDate, setFcEndDate] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,8 +87,28 @@ export function TransactionFormDrawer({
     };
 
     try {
-      if (mode === "add") await addTransaction(payload);
-      else await updateTransaction(transaction!.id, payload);
+      const recurrence = recurringKind === "one_time"
+        ? undefined
+        : {
+            recurring_kind: recurringKind,
+            day_of_month: fcDayOfMonth,
+            end_date: fcEndDate || null,
+          };
+      if (mode === "add") {
+        await addTransaction(payload, recurrence);
+      } else {
+        await updateTransaction(transaction!.id, payload, recurrence);
+      }
+      setSuccess(
+        recurringKind !== "one_time"
+          ? (mode === "add"
+              ? (locale === "en" ? "Added to history and recurring expenses successfully!" : "เพิ่มเข้าประวัติและรายจ่ายประจำเรียบร้อย")
+              : (locale === "en" ? "Updated and added to recurring expenses successfully!" : "บันทึกการแก้ไขและเพิ่มเข้ารายจ่ายประจำเรียบร้อย"))
+          : (mode === "add"
+              ? (locale === "en" ? "Added to history successfully!" : "เพิ่มเข้าประวัติเรียบร้อย")
+              : (locale === "en" ? "Updated successfully!" : "บันทึกการแก้ไขเรียบร้อย"))
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       onSuccess();
       onClose();
     } catch (e) {
@@ -127,7 +166,12 @@ export function TransactionFormDrawer({
               <button
                 key={entryType}
                 type="button"
-                onClick={() => setType(entryType)}
+                onClick={() => {
+                  setType(entryType);
+                  if (entryType !== "expense" && recurringKind === "subscription") {
+                    setRecurringKind("fixed_cost");
+                  }
+                }}
                 className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
                   type === entryType ? "bg-accent text-black" : "border border-[var(--glass-border)] text-fg-muted"
                 }`}
@@ -157,9 +201,21 @@ export function TransactionFormDrawer({
             className={inputClass}
           >
             <option value="">{t.fab.categoryOptional}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+            {categories.map((c) => {
+              let prefix = "";
+              if (c.icon) {
+                if (c.icon.startsWith("ph:") || c.icon.startsWith("lucide:")) {
+                  prefix = "🔹 ";
+                } else {
+                  prefix = `${c.icon} `;
+                }
+              }
+              return (
+                <option key={c.id} value={c.id}>
+                  {prefix}{c.name}
+                </option>
+              );
+            })}
           </select>
 
           {/* Date */}
@@ -179,6 +235,71 @@ export function TransactionFormDrawer({
             onChange={(e) => setNote(e.target.value)}
             className={inputClass}
           />
+
+          {/* Monthly recurrence choice */}
+          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)]/50 p-3 space-y-2">
+            <label className="text-sm font-semibold select-none" htmlFor="analytics-recurring-kind">
+              {t.fixedCosts.recurringType}
+            </label>
+            <select
+              id="analytics-recurring-kind"
+              value={recurringKind}
+              onChange={(e) => setRecurringKind(e.target.value as "one_time" | RecurringKind)}
+              disabled={Boolean(transaction?.fixed_cost_id)}
+              className={inputClass}
+            >
+              <option value="one_time">{t.fixedCosts.oneTime}</option>
+              <option value="fixed_cost">{t.fixedCosts.recurringExpense}</option>
+              {type === "expense" && (
+                <option value="subscription">{t.fixedCosts.subscription}</option>
+              )}
+            </select>
+
+            <AnimatePresence>
+              {recurringKind !== "one_time" && !transaction?.fixed_cost_id && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-2 pt-2 border-t border-[var(--glass-border)]/50 overflow-hidden"
+                >
+                  <div>
+                    <label className="mb-1 block text-[10px] font-semibold text-fg-muted uppercase">
+                      {t.fixedCosts.dayOfMonth}
+                    </label>
+                    <select
+                      value={fcDayOfMonth}
+                      onChange={(e) => setFcDayOfMonth(Number(e.target.value))}
+                      className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs outline-none focus:border-accent"
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-semibold text-fg-muted uppercase">
+                      {t.fixedCosts.endDate}
+                    </label>
+                    <input
+                      type="date"
+                      value={fcEndDate}
+                      onChange={(e) => setFcEndDate(e.target.value)}
+                      className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs outline-none focus:border-accent"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {success && (
+            <div className="flex gap-2 rounded-xl bg-[var(--positive)]/10 p-3 text-sm text-[var(--positive)] font-semibold">
+              ✨ {success}
+            </div>
+          )}
 
           {error && (
             <div className="flex gap-2 rounded-xl bg-[var(--negative)]/10 p-3 text-sm text-[var(--negative)]">

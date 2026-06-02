@@ -41,12 +41,12 @@ export function AppearanceSection() {
     { id: "light", label: t.settings.themeLight, emoji: "🍌" },
     { id: "system", label: t.settings.themeSystem, emoji: "📱" },
   ];
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
   const [hideBalance, setHideBalance] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheme((localStorage.getItem("bs-theme") as Theme | null) ?? "dark");
+    setTheme((localStorage.getItem("bs-theme") as Theme | null) ?? "light");
     setHideBalance(localStorage.getItem("bs-hide-balance") === "true");
   }, []);
 

@@ -2,9 +2,15 @@
 // See CONTEXT.md for the meaning of each term.
 
 export type TransactionType = "income" | "expense" | "savings";
+export type RecurringKind = "fixed_cost" | "subscription";
 export type WealthType = "asset" | "liability";
 export type PlanType = "lifetime" | "monthly" | "yearly";
 export type SlipStatus = "pending" | "verified" | "rejected";
+
+import type {
+  DailyBriefState,
+  MoneyScoreFactor,
+} from "@/lib/nana/types";
 
 export interface Profile {
   id: string;
@@ -19,6 +25,7 @@ export interface Profile {
   cycle_start_day: number;    // 1–28, day the billing period starts (default 1)
   emergency_months: number;   // 1–24, target months of emergency runway (default 6)
   balance_method: "net" | "gross" | "budget"; // how 'remaining' is calculated (default 'net')
+  carryover_enabled: boolean; // whether previous cycle remaining rolls into this month (default false)
   display_name: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -57,6 +64,8 @@ export interface Transaction {
   category_id: string | null;
   brand_id: string | null;
   wallet_id: string | null;
+  fixed_cost_id: string | null;
+  recurring_kind: RecurringKind | null;
   type: TransactionType;
   date: string;
   note: string | null;
@@ -89,6 +98,42 @@ export interface Goal {
   target_amount: number;
   current_amount: number;
   target_date: string | null; // YYYY-MM-DD
+  created_at: string;
+}
+
+export interface FixedCost {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: TransactionType;
+  category_id: string | null;
+  wallet_id: string | null;
+  recurring_kind: RecurringKind;
+  note: string | null;
+  day_of_month: number;
+  auto_log: boolean;
+  start_date: string; // YYYY-MM-DD
+  end_date: string | null; // YYYY-MM-DD
+  last_logged_at: string | null; // YYYY-MM-DD
+  created_at: string;
+}
+
+export interface DailyBrief {
+  id: string;
+  user_id: string;
+  brief_date: string;
+  state: DailyBriefState;
+  safe_to_spend_per_day: number | null;
+  safe_to_spend_is_estimated: boolean;
+  money_score: number;
+  score_factors: MoneyScoreFactor[];
+  primary_message_key: string;
+  suggested_action_key: string | null;
+  reason_values: Record<string, number | string | boolean | null>;
+  ai_detail_th: string | null;
+  suggestion_dismissed_at: string | null;
+  refresh_reason: string;
+  refreshed_at: string;
   created_at: string;
 }
 
