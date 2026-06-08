@@ -325,6 +325,30 @@ export const BRANDS: BrandConfig[] = [
     storagePath: "Food&Drink/Lineman.svg",
     icon: GrabIcon,
   },
+  {
+    id: "subway",
+    name: "Subway",
+    keywords: /subway|ซับเวย์/i,
+    color: "#028940",
+    storagePath: "Food&Drink/Subway Hi-Res Logo.png.png",
+    icon: DefaultBrandIcon,
+  },
+  {
+    id: "katsumidori",
+    name: "Katsumidori",
+    keywords: /katsumidori|คัตสึมิโดริ/i,
+    color: "#b42d1f",
+    storagePath: "Food&Drink/katsumidori.jpg",
+    icon: DefaultBrandIcon,
+  },
+  {
+    id: "taobin",
+    name: "Tao Bin",
+    keywords: /taobin|เต่าบิน/i,
+    color: "#E25B26",
+    storagePath: "Food&Drink/taobin.png",
+    icon: StarbucksIcon,
+  },
 
   // ─── Shopping ───
   {
@@ -375,6 +399,14 @@ export const BRANDS: BrandConfig[] = [
     storagePath: "Shopping/CJ-More.svg",
     icon: ShopeeIcon,
   },
+  {
+    id: "makro",
+    name: "Makro",
+    keywords: /makro|แมคโคร/i,
+    color: "#E30613",
+    storagePath: "Mart/Makro.webp",
+    icon: DefaultBrandIcon,
+  },
 
   // ─── Subscription ───
   {
@@ -415,6 +447,14 @@ export const BRANDS: BrandConfig[] = [
     keywords: /youtube|ยูทูป/i,
     color: "#FF0000",
     storagePath: "Subscription/YouTube.svg",
+    icon: DefaultBrandIcon,
+  },
+  {
+    id: "ais",
+    name: "AIS",
+    keywords: /ais|เอไอเอส/i,
+    color: "#71b200",
+    storagePath: "Subscription/Advanced_Info_Service_logo.svg",
     icon: DefaultBrandIcon,
   },
 ];
