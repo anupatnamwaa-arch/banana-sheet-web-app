@@ -258,7 +258,7 @@ export const BRANDS: BrandConfig[] = [
     name: "MK Restaurants",
     keywords: /mk|เอ็มเค/i,
     color: "#E10B17",
-    storagePath: "Food&Drink/MK.svg",
+    storagePath: "Food&Drink/MK_Restaurant_Logo.svg",
     icon: DefaultBrandIcon,
   },
   {
@@ -348,6 +348,22 @@ export const BRANDS: BrandConfig[] = [
     color: "#E25B26",
     storagePath: "Food&Drink/taobin.png",
     icon: StarbucksIcon,
+  },
+  {
+    id: "burger_king",
+    name: "Burger King",
+    keywords: /burger\s*king|burgerking|เบอร์เกอร์คิง/i,
+    color: "#ed1c24",
+    storagePath: "Food&Drink/burgerking.png",
+    icon: DefaultBrandIcon,
+  },
+  {
+    id: "suki_teenoi",
+    name: "Suki Teenoi",
+    keywords: /suki\s*teenoi|teenoi|สุกี้ตี๋น้อย|ตี๋น้อย/i,
+    color: "#e31c25",
+    storagePath: "Food&Drink/Suki-teenoi.ai",
+    icon: DefaultBrandIcon,
   },
 
   // ─── Shopping ───
