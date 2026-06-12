@@ -12,12 +12,25 @@ interface IngestPayload {
   type?: string;
   date?: string;
   note?: string;
+  wallet?: string;
+  account?: string;
 }
 
 function extractApiKey(req: NextRequest): string | null {
   const auth = req.headers.get("authorization");
   if (auth?.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return req.headers.get("x-api-key");
+}
+
+function normalizeType(value: string | undefined): TransactionType | null {
+  const normalized = value?.trim().toLowerCase() ?? "expense";
+  if (normalized === "income" || normalized === "expense" || normalized === "savings") {
+    return normalized;
+  }
+  if (normalized === "saving" || normalized === "save") {
+    return "savings";
+  }
+  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -34,11 +47,11 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = Number(body.amount);
-  const type = (body.type ?? "expense").toLowerCase() as TransactionType;
+  const type = normalizeType(body.type);
   if (!Number.isFinite(amount) || amount < 0) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   }
-  if (type !== "income" && type !== "expense") {
+  if (type !== "income" && type !== "expense" && type !== "savings") {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
@@ -72,11 +85,25 @@ export async function POST(request: NextRequest) {
     } else {
       const { data: created } = await supabase
         .from("categories")
-        .insert({ user_id: userId, name: categoryName })
+        .insert({ user_id: userId, name: categoryName, type })
         .select("id")
         .single();
       categoryId = created?.id ?? null;
     }
+  }
+
+  // Resolve an optional wallet/account by name for Shortcut flows like
+  // "Savings > Cash", where the leaf selection is sent as a plain string.
+  let walletId: string | null = null;
+  const walletName = body.wallet?.trim() || body.account?.trim();
+  if (walletName) {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("id")
+      .eq("user_id", userId)
+      .ilike("name", walletName)
+      .maybeSingle();
+    walletId = wallet?.id ?? null;
   }
 
   // Best-effort brand match from the note against the shared catalog.
@@ -101,6 +128,7 @@ export async function POST(request: NextRequest) {
     amount,
     type,
     category_id: categoryId,
+    wallet_id: walletId,
     brand_id: brandId,
     note,
     // Treat an incoming date as-is (Bangkok-local per ADR-0003); default to now.
